@@ -30,7 +30,7 @@ const navItems = [
   },
   {
     label: "Produits",
-    href: "#",
+    href: "/produits",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M2 5L8 2L14 5V11L8 14L2 11V5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />

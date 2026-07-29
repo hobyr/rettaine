@@ -30,7 +30,7 @@ const items = [
   },
   {
     label: "Produits",
-    href: "#",
+    href: "/produits",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M2.5 6.5L10 3L17.5 6.5V13.5L10 17L2.5 13.5V6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />

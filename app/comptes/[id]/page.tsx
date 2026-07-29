@@ -406,9 +406,9 @@ export default function CompteDetailPage() {
               ))}
             </tbody>
           </table>
-          <div className="see-all" style={{ textAlign: "center", fontSize: 12.5, color: "var(--blue)", fontWeight: 600, cursor: "pointer", marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          <Link href="/produits" style={{ textDecoration: "none", display: "block", textAlign: "center", fontSize: 12.5, color: "var(--blue)", fontWeight: 600, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
             Voir tous les produits →
-          </div>
+          </Link>
         </div>
 
         <div className="bottom-card" style={{ background: "white", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
