@@ -29,6 +29,16 @@ const items = [
     badge: 4,
   },
   {
+    label: "Actions",
+    href: "/actions",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="2.5" y="2.5" width="15" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M6.5 10L9.5 13L14 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
     label: "Produits",
     href: "/produits",
     icon: (
@@ -42,7 +52,7 @@ const items = [
   },
   {
     label: "Analyse",
-    href: "#",
+    href: "/analyse",
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
         <rect x="2.5" y="11.5" width="3.5" height="6" rx="1" fill="currentColor" />

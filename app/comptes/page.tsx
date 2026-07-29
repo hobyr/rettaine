@@ -1,50 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-
-type Compte = {
-  id: string;
-  displayId: string;
-  company: string;
-  icon: string;
-  statut: "premium" | "standard";
-  rfm: { score: number; label: string; category: "champion" | "loyal" | "risque" | "perdu" };
-  ca: number;
-  caEvolution: number;
-  nps: number;
-  email: boolean;
-};
-
-const data: Compte[] = [
-  { id: "C-001", displayId: "C-001", company: "Beauté Éclat", icon: "💄", statut: "premium", rfm: { score: 845, label: "Champion", category: "champion" }, ca: 12450, caEvolution: 12.5, nps: 72, email: true },
-  { id: "C-002", displayId: "C-002", company: "TechNova", icon: "🖥️", statut: "standard", rfm: { score: 312, label: "Perdu", category: "perdu" }, ca: 5230, caEvolution: -8.3, nps: 34, email: true },
-  { id: "C-003", displayId: "C-003", company: "GreenWave", icon: "🌱", statut: "premium", rfm: { score: 723, label: "Prometteur", category: "champion" }, ca: 8200, caEvolution: 22.1, nps: 68, email: true },
-  { id: "C-004", displayId: "C-004", company: "Maison&Co", icon: "🏠", statut: "premium", rfm: { score: 654, label: "Loyal", category: "loyal" }, ca: 45600, caEvolution: 5.4, nps: 81, email: true },
-  { id: "C-005", displayId: "C-005", company: "SportFit", icon: "🏋️", statut: "standard", rfm: { score: 523, label: "À risque", category: "risque" }, ca: 18700, caEvolution: -2.1, nps: 45, email: false },
-  { id: "C-006", displayId: "C-006", company: "Saveurs du Monde", icon: "🍷", statut: "premium", rfm: { score: 891, label: "Champion", category: "champion" }, ca: 32100, caEvolution: 18.7, nps: 88, email: true },
-  { id: "C-007", displayId: "C-007", company: "Zen & Co", icon: "🧘", statut: "standard", rfm: { score: 432, label: "À risque", category: "risque" }, ca: 6750, caEvolution: -5.9, nps: 39, email: true },
-  { id: "C-008", displayId: "C-008", company: "Mode Urbaine", icon: "👟", statut: "premium", rfm: { score: 767, label: "Loyal", category: "loyal" }, ca: 28300, caEvolution: 9.2, nps: 76, email: true },
-  { id: "C-009", displayId: "C-009", company: "BioDelice", icon: "🥑", statut: "standard", rfm: { score: 289, label: "Perdu", category: "perdu" }, ca: 3400, caEvolution: -15.4, nps: 22, email: false },
-  { id: "C-010", displayId: "C-010", company: "Art&Lumière", icon: "🪔", statut: "premium", rfm: { score: 812, label: "Champion", category: "champion" }, ca: 19500, caEvolution: 14.8, nps: 85, email: true },
-  { id: "C-011", displayId: "C-011", company: "Petit Patron", icon: "👔", statut: "standard", rfm: { score: 498, label: "À risque", category: "risque" }, ca: 8900, caEvolution: 3.2, nps: 51, email: true },
-  { id: "C-012", displayId: "C-012", company: "Cosy Home", icon: "🛋️", statut: "standard", rfm: { score: 610, label: "Loyal", category: "loyal" }, ca: 14700, caEvolution: 7.6, nps: 63, email: true },
-  { id: "C-013", displayId: "C-013", company: "EcoRider", icon: "🚲", statut: "premium", rfm: { score: 701, label: "Champion", category: "champion" }, ca: 11200, caEvolution: 31.2, nps: 79, email: true },
-  { id: "C-014", displayId: "C-014", company: "PureWave", icon: "🎧", statut: "standard", rfm: { score: 345, label: "Perdu", category: "perdu" }, ca: 2100, caEvolution: -22.8, nps: 18, email: false },
-  { id: "C-015", displayId: "C-015", company: "Éclat de Soie", icon: "🧣", statut: "premium", rfm: { score: 834, label: "Champion", category: "champion" }, ca: 38900, caEvolution: 11.3, nps: 90, email: true },
-  { id: "C-016", displayId: "C-016", company: "Jardin Bio", icon: "🌻", statut: "standard", rfm: { score: 567, label: "À risque", category: "risque" }, ca: 7600, caEvolution: -1.5, nps: 48, email: true },
-];
-
-const statutStyles = {
-  premium: { background: "#f0fdf4", color: "#15803d", borderColor: "#bbf7d0" },
-  standard: { background: "#f8fafc", color: "#64748b", borderColor: "#e2e8f0" },
-};
-
-const rfmStyles: Record<string, { background: string; color: string }> = {
-  champion: { background: "#eff6ff", color: "#1d4ed8" },
-  loyal: { background: "#f0fdf4", color: "#15803d" },
-  risque: { background: "#fff7ed", color: "#ea580c" },
-  perdu: { background: "#fef2f2", color: "#dc2626" },
-};
+import { accounts, statutStyles, rfmStyles } from "@/lib/data";
 
 const filterOptions = [
   { key: "all", label: "Tous" },
@@ -84,7 +41,7 @@ export default function ComptesPage() {
   const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
-    let result = data;
+    let result = accounts;
 
     if (search) {
       const q = search.toLowerCase();

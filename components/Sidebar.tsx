@@ -29,6 +29,16 @@ const navItems = [
     badge: 4,
   },
   {
+    label: "Actions",
+    href: "/actions",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M5 8L7.5 10.5L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
     label: "Produits",
     href: "/produits",
     icon: (
@@ -42,7 +52,7 @@ const navItems = [
   },
   {
     label: "Analyse",
-    href: "#",
+    href: "/analyse",
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="2" y="9" width="3" height="5" rx="0.75" fill="currentColor" />

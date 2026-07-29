@@ -1,53 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-
-type Produit = {
-  id: string;
-  name: string;
-  flavor: string;
-  emoji: string;
-  category: string;
-  categoryColor: string;
-  formats: { name: string; sku: string; price: number }[];
-  ca: number;
-  evolution: number;
-  stock: number;
-  badge?: "new" | "hot" | "eco";
-  visualBg: string;
-};
-
-type Categorie = {
-  name: string;
-  emoji: string;
-  color: string;
-  count: number;
-  ca: number;
-  evolution: number;
-  topProducts: { name: string; share: number; color: string }[];
-};
-
-const produits: Produit[] = [
-  { id: "P-001", name: "Sérum Hydratation Intensive", flavor: "Vitamine C + Acide Hyaluronique", emoji: "✨", category: "Soins", categoryColor: "#3b82f6", formats: [{ name: "30ml", sku: "SER-30", price: 39 }, { name: "50ml", sku: "SER-50", price: 54 }, { name: "100ml", sku: "SER-100", price: 82 }], ca: 12450, evolution: 18.5, stock: 342, badge: "hot", visualBg: "#eff6ff" },
-  { id: "P-002", name: "Crème Régénérante Nuit", flavor: "Rétinol + Peptides", emoji: "🌙", category: "Soins", categoryColor: "#3b82f6", formats: [{ name: "50ml", sku: "CRN-50", price: 62 }, { name: "75ml", sku: "CRN-75", price: 84 }], ca: 9800, evolution: 12.3, stock: 215, badge: "hot", visualBg: "#f0fdf4" },
-  { id: "P-003", name: "Nettoyant Douceur", flavor: "Aloe Vera + Camomille", emoji: "🧴", category: "Soins", categoryColor: "#3b82f6", formats: [{ name: "200ml", sku: "ND-200", price: 24 }], ca: 5200, evolution: 5.8, stock: 528, visualBg: "#f8fafc" },
-  { id: "P-004", name: "Pack Découverte Zéro Déchet", flavor: "Kit complet 5 pièces", emoji: "🌱", category: "Éco", categoryColor: "#16a34a", formats: [{ name: "Kit Standard", sku: "ZD-KIT", price: 49 }, { name: "Kit Premium", sku: "ZD-PRE", price: 79 }], ca: 8900, evolution: 32.1, stock: 167, badge: "new", visualBg: "#f0fdf4" },
-  { id: "P-005", name: "Recharge Concentrée Multi-usage", flavor: "Vinaigre Blanc + Agrumes", emoji: "🫧", category: "Éco", categoryColor: "#16a34a", formats: [{ name: "500ml", sku: "RCH-500", price: 12 }, { name: "1L", sku: "RCH-1L", price: 18 }, { name: "5L", sku: "RCH-5L", price: 45 }], ca: 6700, evolution: 24.7, stock: 890, badge: "eco", visualBg: "#f0fdf4" },
-  { id: "P-006", name: "Kit Compostage Balcon", flavor: "Bac 40L + Activateur", emoji: "🪴", category: "Éco", categoryColor: "#16a34a", formats: [{ name: "40L", sku: "KCP-40", price: 59 }, { name: "80L", sku: "KCP-80", price: 89 }], ca: 4100, evolution: -2.3, stock: 73, visualBg: "#f8fafc" },
-  { id: "P-007", name: "Canapé Modulable Oslo", flavor: "Tissu Bouclé 100% recyclé", emoji: "🛋️", category: "Décoration", categoryColor: "#8b5cf6", formats: [{ name: "2 places", sku: "OSL-2", price: 1290 }, { name: "3 places", sku: "OSL-3", price: 1690 }, { name: "Angle", sku: "OSL-ANG", price: 2190 }], ca: 15200, evolution: 8.9, stock: 24, visualBg: "#faf5ff" },
-  { id: "P-008", name: "Table Basse Scandi", flavor: "Chêne massif + Métal noir", emoji: "🪑", category: "Décoration", categoryColor: "#8b5cf6", formats: [{ name: "120x60", sku: "TB-120", price: 490 }, { name: "140x70", sku: "TB-140", price: 590 }], ca: 9800, evolution: 4.2, stock: 18, visualBg: "#faf5ff" },
-  { id: "P-009", name: "Lampe Design Luna", flavor: "Verre soufflé + Laiton", emoji: "💡", category: "Décoration", categoryColor: "#8b5cf6", formats: [{ name: "Petite", sku: "LUN-P", price: 169 }, { name: "Grande", sku: "LUN-G", price: 249 }], ca: 6700, evolution: 15.6, stock: 42, badge: "hot", visualBg: "#fdf2f8" },
-  { id: "P-010", name: "Legging Performance Pro", flavor: "Tissu respirant haute compression", emoji: "🏋️", category: "Sport", categoryColor: "#ea580c", formats: [{ name: "Taille S", sku: "LPP-S", price: 69 }, { name: "Taille M", sku: "LPP-M", price: 69 }, { name: "Taille L", sku: "LPP-L", price: 69 }], ca: 6800, evolution: 22.4, stock: 156, badge: "new", visualBg: "#fff7ed" },
-  { id: "P-011", name: "Tapis de Yoga Premium", flavor: "Liège naturel 6mm", emoji: "🧘", category: "Sport", categoryColor: "#ea580c", formats: [{ name: "Standard", sku: "TYP-S", price: 89 }, { name: "Extra Large", sku: "TYP-XL", price: 119 }], ca: 4200, evolution: 11.8, stock: 89, visualBg: "#fff7ed" },
-  { id: "P-012", name: "Set Élastiques Résistance", flavor: "5 niveaux + Sac de transport", emoji: "💪", category: "Sport", categoryColor: "#ea580c", formats: [{ name: "Kit 5", sku: "ELA-5", price: 34 }], ca: 3100, evolution: -1.5, stock: 234, visualBg: "#fff7ed" },
-];
-
-const categories: Categorie[] = [
-  { name: "Soins", emoji: "✨", color: "#3b82f6", count: 3, ca: 27450, evolution: 12.8, topProducts: [{ name: "Sérum Hydratation Intensive", share: 45.4, color: "#3b82f6" }, { name: "Crème Régénérante Nuit", share: 35.7, color: "#60a5fa" }, { name: "Nettoyant Douceur", share: 18.9, color: "#93c5fd" }] },
-  { name: "Éco", emoji: "🌱", color: "#16a34a", count: 3, ca: 19700, evolution: 21.4, topProducts: [{ name: "Pack Découverte Zéro Déchet", share: 45.2, color: "#16a34a" }, { name: "Recharge Concentrée", share: 34.0, color: "#4ade80" }, { name: "Kit Compostage Balcon", share: 20.8, color: "#86efac" }] },
-  { name: "Décoration", emoji: "🛋️", color: "#8b5cf6", count: 3, ca: 31700, evolution: 7.8, topProducts: [{ name: "Canapé Modulable Oslo", share: 47.9, color: "#8b5cf6" }, { name: "Table Basse Scandi", share: 30.9, color: "#a78bfa" }, { name: "Lampe Design Luna", share: 21.2, color: "#c4b5fd" }] },
-  { name: "Sport", emoji: "🏋️", color: "#ea580c", count: 3, ca: 14100, evolution: 14.2, topProducts: [{ name: "Legging Performance Pro", share: 48.2, color: "#ea580c" }, { name: "Tapis de Yoga Premium", share: 29.8, color: "#f97316" }, { name: "Set Élastiques Résistance", share: 22.0, color: "#fb923c" }] },
-];
+import { produits, categories, badgeStyles } from "@/lib/data";
 
 const tabs = [
   { key: "all", label: "Tous" },
@@ -55,12 +9,6 @@ const tabs = [
   { key: "hot", label: "Meilleures ventes" },
   { key: "stock", label: "Épuisés" },
 ];
-
-const badgeStyles: Record<string, { bg: string; color: string; label: string }> = {
-  new: { bg: "#eff6ff", color: "#1d4ed8", label: "Nouveau" },
-  hot: { bg: "#fff7ed", color: "#ea580c", label: "🔥 Populaire" },
-  eco: { bg: "#f0fdf4", color: "#15803d", label: "Éco" },
-};
 
 export default function ProduitsPage() {
   const [tab, setTab] = useState("all");
