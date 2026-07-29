@@ -16,6 +16,18 @@ const navItems = [
     ),
   },
   {
+    label: "Flashcards",
+    href: "/flashcards",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M6 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M6 9H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+    badge: 24,
+  },
+  {
     label: "Comptes",
     href: "/comptes",
     icon: (
@@ -58,6 +70,16 @@ const navItems = [
         <rect x="2" y="9" width="3" height="5" rx="0.75" fill="currentColor" />
         <rect x="6.5" y="5" width="3" height="9" rx="0.75" fill="currentColor" />
         <rect x="11" y="2" width="3" height="12" rx="0.75" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    label: "Marketing",
+    href: "/marketing",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 12L4 8L6 11L9 5L12 10L14 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="14" cy="4" r="1.5" fill="currentColor" />
       </svg>
     ),
   },

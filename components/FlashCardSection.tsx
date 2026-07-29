@@ -1,94 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import FlashCard, { type CardData } from "./FlashCard";
-
-const mockCards: CardData[] = [
-  {
-    id: "1",
-    company: "Beauté Éclat",
-    icon: "💄",
-    region: "Paris, Île-de-France",
-    category: "Cosmétique",
-    alertType: "relancer",
-    alertReason: "Panier abandonné il y a 7 jours — 3 relances sans réponse",
-    alertDetail: "Cliente à fort potentiel (panier moyen €89) qui a abandonné un panier de €134 après avoir visité la page produit 4 fois.",
-    metrics: { ca: "€12,450", panierMoyen: "€89", retention: "68%", rfmScore: 845, rfmLabel: "Champion" },
-    comment: "Je pense qu'un appel personnalisé pourrait débloquer la situation.",
-    commentMeta: "Sophie M. · Commercial · Il y a 2h",
-    daysSinceContact: 7,
-  },
-  {
-    id: "2",
-    company: "TechNova",
-    icon: "🖥️",
-    region: "Lyon, Auvergne-Rhône-Alpes",
-    category: "Électronique",
-    alertType: "risque",
-    alertReason: "Baisse d'activité de 40% sur 3 mois",
-    alertDetail: "Client historique (€230k CA cumulé) mais plus aucune commande depuis 90 jours. Score RFM en chute libre.",
-    metrics: { ca: "€230,000", panierMoyen: "€1,250", retention: "22%", rfmScore: 312, rfmLabel: "Perdu" },
-    comment: "À relancer en urgence avec une offre dédiée.",
-    commentMeta: "Marc L. · Account Manager · Il y a 1j",
-    daysSinceContact: 14,
-  },
-  {
-    id: "3",
-    company: "GreenWave",
-    icon: "🌱",
-    region: "Bordeaux, Nouvelle-Aquitaine",
-    category: "Éco-responsable",
-    alertType: "opportunite",
-    alertReason: "Demande de devis pour 500 unités — nouvelle référence",
-    alertDetail: "Lead chaud issu du salon Pro-Durable. Besoin d'une réponse sous 48h pour sécuriser la commande.",
-    metrics: { ca: "€8,200", panierMoyen: "€45", retention: "55%", rfmScore: 723, rfmLabel: "Prometteur" },
-    comment: "Gros potentiel de récurrence mensuelle.",
-    commentMeta: "Léa D. · Support Client · Il y a 3h",
-    daysSinceContact: 0,
-  },
-  {
-    id: "4",
-    company: "Maison&Co",
-    icon: "🏠",
-    region: "Nantes, Pays de la Loire",
-    category: "Décoration",
-    alertType: "signal",
-    alertReason: "Taux d'ouverture des emails en baisse de 15%",
-    alertDetail: "Client fidèle (2 ans) mais l'engagement email diminue progressivement. Risque d'endormissement à surveiller.",
-    metrics: { ca: "€45,600", panierMoyen: "€156", retention: "78%", rfmScore: 654, rfmLabel: "Loyal" },
-    comment: "Peut-être changer le canal de communication.",
-    commentMeta: "Paul R. · Marketing · Il y a 5j",
-    daysSinceContact: 5,
-  },
-  {
-    id: "5",
-    company: "SportFit",
-    icon: "🏋️",
-    region: "Marseille, Provence-Alpes-Côte d'Azur",
-    category: "Sport & Fitness",
-    alertType: "relancer",
-    alertReason: "Abonnement arrivé à terme — non renouvelé",
-    alertDetail: "Client abonné pendant 11 mois consécutifs. Panier moyen €67. À reconquérir avec offre de réengagement.",
-    metrics: { ca: "€18,700", panierMoyen: "€67", retention: "45%", rfmScore: 523, rfmLabel: "À risque" },
-    comment: "Tenter un appel + email personnalisé.",
-    commentMeta: "Camille N. · Relation Client · Il y a 3j",
-    daysSinceContact: 6,
-  },
-  {
-    id: "6",
-    company: "Saveurs du Monde",
-    icon: "🍷",
-    region: "Bordeaux, Nouvelle-Aquitaine",
-    category: "Alimentation & Boissons",
-    alertType: "opportunite",
-    alertReason: "Upsell possible sur gamme premium",
-    alertDetail: "Achète régulièrement (tous les 21 jours) mais jamais la gamme haut de gamme. Potentiel d'upsell de +35%.",
-    metrics: { ca: "€32,100", panierMoyen: "€52", retention: "88%", rfmScore: 891, rfmLabel: "Champion" },
-    comment: "Préparer un coffret découverte premium.",
-    commentMeta: "Alexis B. · Commercial · Il y a 1j",
-    daysSinceContact: 2,
-  },
-];
+import FlashCard from "./FlashCard";
+import { flashCards } from "@/lib/data";
 
 const tabs = [
   { key: "all", label: "Tous", count: 0 },
@@ -105,10 +19,10 @@ export default function FlashCardSection() {
 
   const filtered =
     activeTab === "all"
-      ? mockCards
-      : mockCards.filter((c) => c.alertType === activeTab);
+      ? flashCards
+      : flashCards.filter((c) => c.alertType === activeTab);
 
-  const visibleCards = filtered.length > 0 ? filtered : mockCards;
+  const visibleCards = filtered.length > 0 ? filtered : flashCards;
   const current = visibleCards[activeIndex] ?? visibleCards[0];
 
   const handlePrev = () => {
@@ -229,8 +143,8 @@ export default function FlashCardSection() {
         {tabs.map((tab) => {
           const count =
             tab.key === "all"
-              ? mockCards.length
-              : mockCards.filter((c) => c.alertType === tab.key).length;
+              ? flashCards.length
+              : flashCards.filter((c) => c.alertType === tab.key).length;
           return (
             <button
               key={tab.key}

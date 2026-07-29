@@ -16,6 +16,18 @@ const items = [
     ),
   },
   {
+    label: "Flashcards",
+    href: "/flashcards",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <rect x="2.5" y="1.5" width="15" height="17" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M7.5 7.5H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M7.5 11.5H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+    badge: 24,
+  },
+  {
     label: "Comptes",
     href: "/comptes",
     icon: (
@@ -62,6 +74,16 @@ const items = [
     ),
   },
   {
+    label: "Marketing",
+    href: "/marketing",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M2.5 15L5 10L7.5 13.5L11.5 6.5L15 12.5L17.5 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="17.5" cy="5" r="1.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     label: "Menu",
     href: "#menu",
     icon: (
@@ -90,6 +112,10 @@ export default function MobileNav() {
         zIndex: 100,
         padding: "6px 0",
         display: "flex",
+        overflowX: "auto",
+        flexWrap: "nowrap",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
       }}
     >
       {items.map((item) => {
@@ -99,12 +125,12 @@ export default function MobileNav() {
             key={item.label}
             href={item.href}
             style={{
-              flex: 1,
+              flex: "0 0 auto",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               gap: 3,
-              padding: "6px 0",
+              padding: "6px 12px",
               border: "none",
               background: "transparent",
               color: isActive ? "var(--active)" : "#94a3b8",
