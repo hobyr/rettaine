@@ -3,11 +3,31 @@
 import { useState, useMemo } from "react"
 import type { Produit, Categorie } from "@/lib/products"
 
-function formatCents(cents: number): string {
-  return (cents / 100).toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+function formatEur(cents: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cents / 100)
+}
+
+function formatEurValue(euros: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(euros)
+}
+
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat("fr-FR").format(n)
+}
+
+function formatEvolution(value: number): string {
+  const formatted = new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Math.abs(value))
+  const sign = value >= 0 ? "+" : ""
+  return `${sign}${formatted}%`
 }
 
 const tabs = [
@@ -57,22 +77,22 @@ export default function ProduitsContent({
       <div className="prod-kpi-bar" style={{ display: "flex", gap: 12, margin: "16px 28px 0", flexShrink: 0 }}>
         <div className="prod-kpi" style={{ flex: 1, background: "white", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
           <div className="prod-kpi-label" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Nb Produits</div>
-          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{produits.length}</div>
+          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatNumber(produits.length)}</div>
           <div className="prod-kpi-sub" style={{ fontSize: 11, color: "var(--light)", marginTop: 3 }}>Tous actifs</div>
         </div>
         <div className="prod-kpi" style={{ flex: 1, background: "white", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
           <div className="prod-kpi-label" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>CA Produits</div>
-          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>€{formatCents(totalCa)}</div>
+          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatEur(totalCa)}</div>
           <div className="prod-kpi-sub" style={{ fontSize: 11, color: "var(--light)", marginTop: 3 }}>Cumul annuel</div>
         </div>
         <div className="prod-kpi" style={{ flex: 1, background: "white", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
           <div className="prod-kpi-label" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Nb SKUs</div>
-          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{totalFormats}</div>
+          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatNumber(totalFormats)}</div>
           <div className="prod-kpi-sub" style={{ fontSize: 11, color: "var(--light)", marginTop: 3 }}>Déclinées</div>
         </div>
         <div className="prod-kpi" style={{ flex: 1, background: "white", border: "1px solid var(--border)", borderRadius: 10, padding: "14px 16px" }}>
           <div className="prod-kpi-label" style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>Stock Total</div>
-          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{totalStock}</div>
+          <div className="prod-kpi-val" style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatNumber(totalStock)}</div>
           <div className="prod-kpi-sub" style={{ fontSize: 11, color: "var(--light)", marginTop: 3 }}>Unités</div>
         </div>
       </div>
@@ -112,16 +132,16 @@ export default function ProduitsContent({
                     <div key={f.sku} className="prod-format" style={{ flex: 1, background: "#f8fafc", borderRadius: 7, padding: "7px 9px" }}>
                       <div className="prod-format-name" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 2 }}>{f.name}</div>
                       <div className="prod-format-sku" style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 1 }}>{f.sku}</div>
-                      <div className="prod-format-price" style={{ fontSize: 12, fontWeight: 700, color: "#2563eb" }}>€{f.price}</div>
+                      <div className="prod-format-price" style={{ fontSize: 12, fontWeight: 700, color: "#2563eb" }}>{formatEurValue(f.price)}</div>
                     </div>
                   ))}
                 </div>
                 <div className="prod-card-foot" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
                   <div className="prod-ca" style={{ fontSize: 12, color: "var(--muted)" }}>
-                    CA: <span style={{ fontWeight: 700, color: "var(--text)" }}>€{formatCents(p.ca)}</span>
+                    CA: <span style={{ fontWeight: 700, color: "var(--text)" }}>{formatEur(p.ca)}</span>
                   </div>
                   <span style={{ fontSize: 11.5, fontWeight: 700, padding: "2px 7px", borderRadius: 8, background: p.evolution >= 0 ? "#f0fdf4" : "#fef2f2", color: p.evolution >= 0 ? "#15803d" : "#dc2626" }}>
-                    {p.evolution >= 0 ? "+" : ""}{p.evolution}%
+                    {formatEvolution(p.evolution)}
                   </span>
                 </div>
               </div>
@@ -164,9 +184,9 @@ export default function ProduitsContent({
                     </span>
                   </td>
                   <td style={{ padding: "11px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
-                    <span style={{ fontWeight: 700, fontSize: 13 }}>€{formatCents(p.ca)}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{formatEur(p.ca)}</span>
                     <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 4, color: p.evolution >= 0 ? "var(--green)" : "var(--red)" }}>
-                      {p.evolution >= 0 ? "+" : ""}{p.evolution}%
+                      {formatEvolution(p.evolution)}
                     </span>
                   </td>
                   <td style={{ padding: "11px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
@@ -194,9 +214,9 @@ export default function ProduitsContent({
                   <div className="cat-count" style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{cat.count} produits</div>
                 </div>
               </div>
-              <div className="cat-ca" style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>€{formatCents(cat.ca)}</div>
+              <div className="cat-ca" style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>{formatEur(cat.ca)}</div>
               <div className="cat-evol" style={{ fontSize: 11.5, fontWeight: 700, marginTop: 1, color: cat.evolution >= 0 ? "var(--green)" : "var(--red)" }}>
-                {cat.evolution >= 0 ? "+" : ""}{cat.evolution}%
+                {formatEvolution(cat.evolution)}
               </div>
               <div className="cat-bar-wrap" style={{ height: 6, background: "#f1f5f9", borderRadius: 3, margin: "12px 0" }}>
                 <div className="cat-bar" style={{ height: 6, borderRadius: 3, background: cat.color, width: `${Math.min(cat.evolution * 3 + 30, 100)}%` }} />
