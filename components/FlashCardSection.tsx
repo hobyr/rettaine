@@ -1,28 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import FlashCard from "./FlashCard";
-import { flashCards } from "@/lib/data";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type HomeFlashcard = {
+  flashcard_type: "RISK" | "OPPORTUNITY";
+  account_number: string;
+  account_name: string;
+  title: string;
+  description: string;
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  action: string;
+  current_turnover_ex_vat: number;
+  previous_turnover_ex_vat: number;
+  turnover_evolution_percent: string | null;
+};
 
 const tabs = [
-  { key: "all", label: "Tous", count: 0 },
-  { key: "relancer", label: "Relancer", count: 2 },
-  { key: "risque", label: "Risque de perte", count: 1 },
-  { key: "opportunite", label: "Opportunité", count: 2 },
-  { key: "signal", label: "Signal faible", count: 1 },
+  { key: "all", label: "Toutes" },
+  { key: "RISK", label: "En risque" },
+  { key: "OPPORTUNITY", label: "Opportunités" },
 ];
 
+const badgeStyles: Record<string, { bg: string; color: string }> = {
+  RISK: { bg: "#fef2f2", color: "#dc2626" },
+  OPPORTUNITY: { bg: "#faf5ff", color: "#7c3aed" },
+};
+
+const badgeLabels: Record<string, string> = {
+  RISK: "En risque",
+  OPPORTUNITY: "Opportunité",
+};
+
+function formatEur(cents: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cents / 100);
+}
+
+function formatFlashcardSentences(card: HomeFlashcard) {
+  const isRelance = card.title === "Client à relancer";
+
+  if (isRelance) {
+    return {
+      title: "Client à relancer",
+      description: `Dernière commande ancienne. Contacter ${card.account_name} pour relancer l'activité.`,
+    };
+  }
+
+  const pct = card.turnover_evolution_percent
+    ? new Intl.NumberFormat("fr-FR", {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }).format(Math.abs(parseFloat(card.turnover_evolution_percent)) / 100)
+    : null;
+
+  const direction =
+    card.flashcard_type === "OPPORTUNITY" ? "hausse" : "baisse";
+
+  const title = `CA en ${direction} de ${pct}`;
+
+  const description =
+    `Le CA est passé de ${formatEur(card.previous_turnover_ex_vat)} à ${formatEur(card.current_turnover_ex_vat)} vs N-1.`;
+
+  return { title, description };
+}
+
 export default function FlashCardSection() {
+  const [flashcards, setFlashcards] = useState<HomeFlashcard[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<"carousel" | "grid">("carousel");
 
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.rpc("get_home_flashcards").then(({ data, error }) => {
+      if (!error && data) setFlashcards(data as HomeFlashcard[]);
+      setLoading(false);
+    });
+  }, []);
+
   const filtered =
     activeTab === "all"
-      ? flashCards
-      : flashCards.filter((c) => c.alertType === activeTab);
+      ? flashcards
+      : flashcards.filter((c) => c.flashcard_type === activeTab);
 
-  const visibleCards = filtered.length > 0 ? filtered : flashCards;
+  const visibleCards = filtered.length > 0 ? filtered : flashcards;
   const current = visibleCards[activeIndex] ?? visibleCards[0];
 
   const handlePrev = () => {
@@ -33,9 +98,219 @@ export default function FlashCardSection() {
     setActiveIndex((i) => (i < visibleCards.length - 1 ? i + 1 : 0));
   };
 
+  if (loading) {
+    return (
+      <div
+        style={{
+          margin: "24px 28px 0",
+          padding: 24,
+          textAlign: "center",
+          color: "var(--muted)",
+          fontSize: 13,
+        }}
+      >
+        Chargement des flashcards…
+      </div>
+    );
+  }
+
+  function renderCard(card: HomeFlashcard, detailed: boolean) {
+    const sentences = formatFlashcardSentences(card);
+    const badge = badgeStyles[card.flashcard_type] ?? badgeStyles.RISK;
+    const badgeLabel = badgeLabels[card.flashcard_type] ?? "Alerte";
+    const priorityColor =
+      card.priority === "HIGH"
+        ? "var(--red)"
+        : card.priority === "MEDIUM"
+          ? "var(--orange)"
+          : "var(--muted)";
+
+    return (
+      <div
+        style={{
+          background: "white",
+          border: "1px solid var(--border)",
+          borderRadius: 14,
+          padding: detailed ? 20 : 14,
+          boxShadow: detailed ? "0 4px 16px rgba(0,0,0,0.08)" : undefined,
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: detailed ? 14 : 10,
+          }}
+        >
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "3px 9px",
+                borderRadius: 20,
+                fontSize: detailed ? 12 : 10.5,
+                fontWeight: 600,
+                background: badge.bg,
+                color: badge.color,
+              }}
+            >
+              {badgeLabel}
+            </span>
+            <span
+              style={{
+                display: "inline-flex",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: priorityColor,
+              }}
+            />
+          </div>
+          {detailed && (
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>
+              {formatEur(card.current_turnover_ex_vat)} CA
+            </span>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 9,
+            alignItems: "center",
+            marginBottom: detailed ? 12 : 8,
+          }}
+        >
+          <div
+            style={{
+              width: detailed ? 36 : 28,
+              height: detailed ? 36 : 28,
+              borderRadius: 7,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: detailed ? 13 : 11,
+              fontWeight: 700,
+              background:
+                card.flashcard_type === "RISK" ? "#fef2f2" : "#faf5ff",
+              color:
+                card.flashcard_type === "RISK" ? "#dc2626" : "#7c3aed",
+              flexShrink: 0,
+            }}
+          >
+            {card.flashcard_type === "RISK" ? "!" : "▲"}
+          </div>
+          <div>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: detailed ? 14 : 12.5,
+                color: "var(--text)",
+              }}
+            >
+              {card.account_name}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              {card.account_number}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            fontSize: detailed ? 13.5 : 12,
+            fontWeight: 600,
+            color: "var(--text)",
+            marginBottom: 4,
+          }}
+        >
+          {sentences.title}
+        </div>
+
+        {detailed && (
+          <div
+            style={{
+              fontSize: 12.5,
+              color: "var(--muted)",
+              lineHeight: 1.5,
+              marginBottom: 12,
+            }}
+          >
+            {sentences.description}
+          </div>
+        )}
+
+        {detailed && (
+          <div
+            style={{
+              background: "#f8fafc",
+              borderRadius: 8,
+              padding: "10px 13px",
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ fontSize: 11, color: "var(--light)", marginBottom: 2 }}>
+              Action recommandée
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 500 }}>
+              {card.action}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 6 }}>
+          <div
+            style={{
+              flex: 1,
+              padding: detailed ? "8px 0" : "6px 0",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "white",
+              fontSize: detailed ? 12 : 10.5,
+              cursor: "pointer",
+              textAlign: "center",
+              color: "var(--text)",
+              fontWeight: 500,
+            }}
+          >
+            Contacter
+          </div>
+          <div
+            style={{
+              flex: 1,
+              padding: detailed ? "8px 0" : "6px 0",
+              borderRadius: 6,
+              border: "1px solid var(--active)",
+              background: "var(--active)",
+              fontSize: detailed ? 12 : 10.5,
+              cursor: "pointer",
+              textAlign: "center",
+              color: "white",
+              fontWeight: 600,
+            }}
+          >
+            Voir le compte
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ margin: "24px 28px 0", flex: 1, minHeight: 0 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 16,
+        }}
+      >
         <div>
           <h2
             style={{
@@ -49,34 +324,12 @@ export default function FlashCardSection() {
             À traiter
           </h2>
           <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0" }}>
-            {visibleCards.length} client{visibleCards.length > 1 ? "s" : ""} nécessitent une action
+            {visibleCards.length} client
+            {visibleCards.length > 1 ? "s" : ""} nécessitent une action
           </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 12px",
-              background: "white",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              color: "#374151",
-              cursor: "pointer",
-              fontFamily: "Figtree, sans-serif",
-              fontWeight: 500,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M4 8H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M6 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            Trier
-          </button>
           <div
             style={{
               display: "flex",
@@ -143,8 +396,8 @@ export default function FlashCardSection() {
         {tabs.map((tab) => {
           const count =
             tab.key === "all"
-              ? flashCards.length
-              : flashCards.filter((c) => c.alertType === tab.key).length;
+              ? flashcards.length
+              : flashcards.filter((c) => c.flashcard_type === tab.key).length;
           return (
             <button
               key={tab.key}
@@ -175,7 +428,7 @@ export default function FlashCardSection() {
       {viewMode === "carousel" ? (
         <div style={{ position: "relative", minHeight: 400 }}>
           <div style={{ position: "relative", zIndex: 2 }}>
-            <FlashCard key={current.id} card={current} />
+            {current && renderCard(current, true)}
           </div>
           {visibleCards.length > 1 && (
             <>
@@ -299,127 +552,8 @@ export default function FlashCardSection() {
           className="max-md:grid-cols-1"
         >
           {visibleCards.map((card) => (
-            <div
-              key={card.id}
-              style={{
-                background: "white",
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: 14,
-                cursor: "pointer",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: 10,
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-flex",
-                    padding: "2px 8px",
-                    borderRadius: 10,
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    background:
-                      card.alertType === "relancer"
-                        ? "#fff7ed"
-                        : card.alertType === "risque"
-                          ? "#fef2f2"
-                          : card.alertType === "opportunite"
-                            ? "#faf5ff"
-                            : "#fffbeb",
-                    color:
-                      card.alertType === "relancer"
-                        ? "#ea580c"
-                        : card.alertType === "risque"
-                          ? "#dc2626"
-                          : card.alertType === "opportunite"
-                            ? "#7c3aed"
-                            : "#b45309",
-                  }}
-                >
-                  {badgeLabels[card.alertType]}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 9,
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <div
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 7,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    background: "#f1f5f9",
-                    flexShrink: 0,
-                  }}
-                >
-                  {card.icon}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>
-                    {card.company}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--muted)" }}>{card.category}</div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "var(--text)",
-                  marginBottom: 4,
-                }}
-              >
-                {card.alertReason}
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--muted)",
-                  lineHeight: 1.4,
-                  marginBottom: 10,
-                }}
-              >
-                {card.alertDetail}
-              </div>
-
-              <div style={{ display: "flex", gap: 5 }}>
-                <div style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "1px solid var(--border)", background: "white", fontSize: 11, cursor: "pointer", textAlign: "center" }}>
-                  Contacter
-                </div>
-                <div
-                  style={{
-                    flex: 1,
-                    padding: "6px 0",
-                    borderRadius: 6,
-                    border: "1px solid var(--active)",
-                    background: "var(--active)",
-                    fontSize: 11,
-                    cursor: "pointer",
-                    textAlign: "center",
-                    color: "white",
-                    fontWeight: 600,
-                  }}
-                >
-                  Commande
-                </div>
-              </div>
+            <div key={card.account_number}>
+              {renderCard(card, false)}
             </div>
           ))}
         </div>
@@ -427,10 +561,3 @@ export default function FlashCardSection() {
     </div>
   );
 }
-
-const badgeLabels: Record<string, string> = {
-  relancer: "Relancer",
-  risque: "Risque de perte",
-  opportunite: "Opportunité",
-  signal: "Signal faible",
-};
