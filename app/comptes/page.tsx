@@ -1,19 +1,32 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { accounts, statutStyles, rfmStyles } from "@/lib/data";
+import { useEffect, useState, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type AccountOverview = {
+  account_number: string;
+  account_name: string;
+  account_type: string;
+  region: string;
+  ytd_turnover_ex_vat: number;
+  turnover_evolution_percent: string | null;
+  rfm_segment: string;
+  days_since_last_order: number | null;
+};
 
 const filterOptions = [
   { key: "all", label: "Tous" },
-  { key: "premium", label: "Premium" },
-  { key: "standard", label: "Standard" },
-  { key: "champion", label: "Champions" },
-  { key: "risque", label: "À risque" },
+  { key: "VIP", label: "VIP" },
+  { key: "Loyal", label: "Fidèle" },
+  { key: "Regular", label: "Régulier" },
+  { key: "At Risk", label: "À risque" },
+  { key: "Dormant", label: "Dormant" },
+  { key: "New / Potential", label: "Nouveau" },
 ];
 
 const PAGE_SIZE = 8;
 
-type SortKey = "company" | "statut" | "ca" | "nps";
+type SortKey = "company" | "statut" | "ca" | "days";
 type SortDir = "asc" | "desc";
 
 function SortArrow({
@@ -33,12 +46,59 @@ function SortArrow({
   );
 }
 
+function formatEur(cents: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cents / 100);
+}
+
+function formatEvolution(pct: string | null): string {
+  if (pct === null) return "—";
+  const n = parseFloat(pct);
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(1)}%`;
+}
+
+function formatDays(days: number | null): string {
+  if (days === null) return "—";
+  if (days === 0) return "Aujourd'hui";
+  if (days === 1) return "Hier";
+  return `Il y a ${days} jours`;
+}
+
+const accountTypeStyles: Record<string, { background: string; color: string; borderColor: string }> = {
+  Distributeur: { background: "#f0fdf4", color: "#15803d", borderColor: "#bbf7d0" },
+  Retail: { background: "#f0fdf4", color: "#15803d", borderColor: "#bbf7d0" },
+  Grossiste: { background: "#f8fafc", color: "#64748b", borderColor: "#e2e8f0" },
+  Revendeur: { background: "#f8fafc", color: "#64748b", borderColor: "#e2e8f0" },
+};
+
+const rfmSegmentStyles: Record<string, { background: string; color: string }> = {
+  VIP: { background: "#eff6ff", color: "#1d4ed8" },
+  Loyal: { background: "#f0fdf4", color: "#15803d" },
+  Regular: { background: "#f0fdf9", color: "#0f766e" },
+  "At Risk": { background: "#fff7ed", color: "#ea580c" },
+  Dormant: { background: "#fef2f2", color: "#dc2626" },
+  "New / Potential": { background: "#faf5ff", color: "#7c3aed" },
+};
+
 export default function ComptesPage() {
+  const [accounts, setAccounts] = useState<AccountOverview[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.rpc("get_accounts_overview").then(({ data, error }) => {
+      if (!error && data) setAccounts(data as AccountOverview[]);
+      setLoading(false);
+    });
+  }, []);
 
   const filtered = useMemo(() => {
     let result = accounts;
@@ -47,29 +107,28 @@ export default function ComptesPage() {
       const q = search.toLowerCase();
       result = result.filter(
         (c) =>
-          c.company.toLowerCase().includes(q) ||
-          c.displayId.toLowerCase().includes(q)
+          c.account_name.toLowerCase().includes(q) ||
+          c.account_number.toLowerCase().includes(q)
       );
     }
 
-    if (filter === "premium") result = result.filter((c) => c.statut === "premium");
-    else if (filter === "standard") result = result.filter((c) => c.statut === "standard");
-    else if (filter === "champion") result = result.filter((c) => c.rfm.category === "champion");
-    else if (filter === "risque") result = result.filter((c) => c.rfm.category === "risque");
+    if (filter !== "all")
+      result = result.filter((c) => c.rfm_segment === filter);
 
     if (sortKey) {
       result = [...result].sort((a, b) => {
         let cmp = 0;
-        if (sortKey === "company") cmp = a.company.localeCompare(b.company);
-        else if (sortKey === "statut") cmp = a.statut.localeCompare(b.statut);
-        else if (sortKey === "ca") cmp = a.ca - b.ca;
-        else if (sortKey === "nps") cmp = a.nps - b.nps;
+        if (sortKey === "company") cmp = a.account_name.localeCompare(b.account_name);
+        else if (sortKey === "statut") cmp = a.account_type.localeCompare(b.account_type);
+        else if (sortKey === "ca") cmp = a.ytd_turnover_ex_vat - b.ytd_turnover_ex_vat;
+        else if (sortKey === "days")
+          cmp = (a.days_since_last_order ?? Infinity) - (b.days_since_last_order ?? Infinity);
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
 
     return result;
-  }, [search, filter, sortKey, sortDir]);
+  }, [accounts, search, filter, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -84,7 +143,24 @@ export default function ComptesPage() {
     setPage(0);
   };
 
-  const detailRoute = (id: string) => `/comptes/${id.replace("C-", "").replace(/^0+/, "")}`;
+  const detailRoute = (id: string) => `/comptes/${id.replace(/^C0*/, "")}`;
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100%",
+        }}
+      >
+        <span style={{ color: "var(--muted)", fontSize: 13 }}>
+          Chargement des comptes…
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
@@ -217,17 +293,17 @@ export default function ComptesPage() {
               <Th onClick={() => handleSort("ca")} sortable>
                 CA <SortArrow col="ca" sortKey={sortKey} sortDir={sortDir} />
               </Th>
-              <Th onClick={() => handleSort("nps")} sortable>
-                NPS <SortArrow col="nps" sortKey={sortKey} sortDir={sortDir} />
+              <Th>Région</Th>
+              <Th onClick={() => handleSort("days")} sortable>
+                Dernière commande <SortArrow col="days" sortKey={sortKey} sortDir={sortDir} />
               </Th>
-              <Th>Email</Th>
             </tr>
           </thead>
           <tbody>
             {paged.map((c) => (
               <tr
-                key={c.id}
-                onClick={() => window.location.href = detailRoute(c.id)}
+                key={c.account_number}
+                onClick={() => window.location.href = detailRoute(c.account_number)}
                 style={{ cursor: "pointer", transition: "background 0.12s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "")}
@@ -242,17 +318,18 @@ export default function ComptesPage() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 11,
+                        fontSize: 13,
                         fontWeight: 700,
                         background: "#f1f5f9",
+                        color: "#64748b",
                         flexShrink: 0,
                       }}
                     >
-                      {c.icon}
+                      {c.account_name.charAt(0)}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{c.company}</div>
-                      <div style={{ fontSize: 11, color: "var(--light)" }}>{c.displayId}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{c.account_name}</div>
+                      <div style={{ fontSize: 11, color: "var(--light)" }}>{c.account_number}</div>
                     </div>
                   </div>
                 </td>
@@ -265,10 +342,10 @@ export default function ComptesPage() {
                       fontSize: 11,
                       fontWeight: 600,
                       border: "1px solid",
-                      ...statutStyles[c.statut],
+                      ...(accountTypeStyles[c.account_type] ?? accountTypeStyles.Grossiste),
                     }}
                   >
-                    {c.statut === "premium" ? "Premium" : "Standard"}
+                    {c.account_type}
                   </span>
                 </td>
                 <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
@@ -281,40 +358,38 @@ export default function ComptesPage() {
                       borderRadius: 20,
                       fontSize: 11.5,
                       fontWeight: 700,
-                      ...rfmStyles[c.rfm.category],
+                      ...(rfmSegmentStyles[c.rfm_segment] ?? rfmSegmentStyles.Regular),
                     }}
                   >
-                    {c.rfm.label} ({c.rfm.score})
+                    {c.rfm_segment}
                   </span>
                 </td>
                 <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
-                  <span style={{ fontWeight: 700, fontSize: 13 }}>€{c.ca.toLocaleString()}</span>
+                  <span style={{ fontWeight: 700, fontSize: 13 }}>
+                    {formatEur(c.ytd_turnover_ex_vat)}
+                  </span>
                   <span
                     style={{
                       fontSize: 11,
                       fontWeight: 600,
                       marginLeft: 4,
-                      color: c.caEvolution >= 0 ? "var(--green)" : "var(--red)",
-                    }}
-                  >
-                    {c.caEvolution >= 0 ? "+" : ""}{c.caEvolution}%
-                  </span>
-                </td>
-                <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 13,
                       color:
-                        c.nps >= 70 ? "var(--green)" : c.nps >= 40 ? "var(--orange)" : "var(--red)",
+                        c.turnover_evolution_percent !== null && parseFloat(c.turnover_evolution_percent) >= 0
+                          ? "var(--green)"
+                          : "var(--red)",
                     }}
                   >
-                    {c.nps}
+                    {formatEvolution(c.turnover_evolution_percent)}
                   </span>
                 </td>
                 <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
-                  <span style={{ fontSize: 16 }}>
-                    {c.email ? "✅" : "❌"}
+                  <span style={{ fontSize: 12.5, color: "var(--text)" }}>
+                    {c.region}
+                  </span>
+                </td>
+                <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc", verticalAlign: "middle" }}>
+                  <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+                    {formatDays(c.days_since_last_order)}
                   </span>
                 </td>
               </tr>
