@@ -12,8 +12,10 @@ type KpiData = {
 };
 
 function formatEur(cents: number): string {
-  const euros = Math.round(cents / 100);
-  return euros.toLocaleString("fr-FR") + " €";
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(cents / 100);
 }
 
 export default function KpiBar() {
