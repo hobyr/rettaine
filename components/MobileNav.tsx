@@ -16,18 +16,6 @@ const items = [
     ),
   },
   {
-    label: "Flashcards",
-    href: "/flashcards",
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <rect x="2.5" y="1.5" width="15" height="17" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M7.5 7.5H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M7.5 11.5H12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-    badge: 24,
-  },
-  {
     label: "Comptes",
     href: "/comptes",
     icon: (

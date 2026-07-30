@@ -143,7 +143,7 @@ export default function ComptesPage() {
     setPage(0);
   };
 
-  const detailRoute = (id: string) => `/comptes/${id.replace(/^C0*/, "")}`;
+  const detailRoute = (id: string) => `/comptes/${id}`;
 
   if (loading) {
     return (

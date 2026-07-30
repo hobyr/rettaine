@@ -16,18 +16,6 @@ const navItems = [
     ),
   },
   {
-    label: "Flashcards",
-    href: "/flashcards",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M6 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <path d="M6 9H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-    badge: 24,
-  },
-  {
     label: "Comptes",
     href: "/comptes",
     icon: (
