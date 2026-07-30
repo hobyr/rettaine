@@ -1,51 +1,56 @@
 "use client";
 
-const kpis = [
-  {
-    label: "Chiffre d'affaires",
-    value: "€284,500",
-    evolution: "+12.5",
-    vsPrev: "€252,800",
-  },
-  {
-    label: "Panier Moyen",
-    value: "€78.40",
-    evolution: "+3.2",
-    vsPrev: "€75.90",
-  },
-  {
-    label: "Taux de Conversion",
-    value: "3.8%",
-    evolution: "+0.4",
-    vsPrev: "3.4%",
-  },
-  {
-    label: "Nbre de Commandes",
-    value: "3,628",
-    evolution: "+8.7",
-    vsPrev: "3,338",
-  },
-  {
-    label: "Nbre de Clients",
-    value: "1,847",
-    evolution: "+5.1",
-    vsPrev: "1,757",
-  },
-  {
-    label: "Taux de Rétention",
-    value: "72.4%",
-    evolution: "+2.1",
-    vsPrev: "70.3%",
-  },
-  {
-    label: "NPS",
-    value: "45",
-    evolution: "+3",
-    vsPrev: "42",
-  },
-];
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type KpiData = {
+  ytd_turnover_ex_vat: number;
+  active_accounts: number;
+  at_risk_turnover_ex_vat: number;
+  opportunity_turnover_ex_vat: number;
+  accounts_to_contact: number;
+};
+
+function formatEur(cents: number): string {
+  const euros = Math.round(cents / 100);
+  return euros.toLocaleString("fr-FR") + " €";
+}
 
 export default function KpiBar() {
+  const [data, setData] = useState<KpiData | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.rpc("get_home_portfolio_kpis").then(({ data, error }) => {
+      if (!error && data?.[0]) setData(data[0] as unknown as KpiData);
+    });
+  }, []);
+
+  const kpis = data
+    ? [
+        {
+          label: "CA portefeuille YTD",
+          value: formatEur(data.ytd_turnover_ex_vat),
+          subtitle: `${data.active_accounts} comptes actifs`,
+        },
+        {
+          label: "CA en risque",
+          value: formatEur(data.at_risk_turnover_ex_vat),
+          subtitle: "comptes en baisse >20%",
+        },
+        {
+          label: "CA en opportunité",
+          value: formatEur(data.opportunity_turnover_ex_vat),
+          subtitle: "comptes en hausse >20%",
+        },
+        {
+          label: "Clients à contacter",
+          value: String(data.accounts_to_contact),
+          subtitle: "clients en risque / dormants",
+        },
+      ]
+    : [];
+
   return (
     <div
       className="kpi-bar"
@@ -59,56 +64,52 @@ export default function KpiBar() {
         flexShrink: 0,
       }}
     >
-      {kpis.map((kpi) => (
-        <div
-          key={kpi.label}
-          className="kpi-item"
-          style={{
-            flex: 1,
-            padding: "16px 18px",
-            borderRight: "1px solid var(--border)",
-            minWidth: 0,
-          }}
-        >
+      {kpis.length === 0 ? (
+        <div style={{ flex: 1, padding: "24px 18px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+          Chargement…
+        </div>
+      ) : (
+        kpis.map((kpi) => (
           <div
+            key={kpi.label}
+            className="kpi-item"
             style={{
-              fontSize: 11.5,
-              color: "var(--muted)",
-              marginBottom: 6,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              whiteSpace: "nowrap",
+              flex: 1,
+              padding: "16px 18px",
+              borderRight: "1px solid var(--border)",
+              minWidth: 0,
             }}
           >
-            {kpi.label}
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span
+            <div
               style={{
-                fontSize: 19,
+                fontSize: 11.5,
+                color: "var(--muted)",
+                marginBottom: 6,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {kpi.label}
+            </div>
+            <div
+              style={{
+                fontSize: 24,
                 fontWeight: 800,
                 color: "var(--text)",
                 letterSpacing: "-0.03em",
+                lineHeight: 1.1,
               }}
             >
               {kpi.value}
-            </span>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: kpi.evolution.startsWith("+") ? "var(--green)" : "var(--red)",
-              }}
-            >
-              {kpi.evolution}%
-            </span>
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+              {kpi.subtitle}
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: "#b0b9c8", marginTop: 4 }}>
-            vs {kpi.vsPrev}
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }

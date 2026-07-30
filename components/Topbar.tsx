@@ -22,7 +22,7 @@ export default function Topbar() {
             margin: 0,
           }}
         >
-          Dashboard
+          Bonjour Thomas 👋
         </h1>
         <p
           style={{
@@ -31,7 +31,7 @@ export default function Topbar() {
             margin: "3px 0 0",
           }}
         >
-          Vue d&apos;ensemble de votre activité
+          Voici ce qui mérite votre attention aujourd&apos;hui.
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default function Topbar() {
               <path d="M2 7H14" stroke="currentColor" strokeWidth="1.5" />
               <path d="M5 1V4M11 1V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            Cette semaine
+            1 janv. – 31 mai 2024 (YTD)
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -127,11 +127,11 @@ export default function Topbar() {
               flexShrink: 0,
             }}
           >
-            AD
+            TM
           </div>
           <div className="max-md:hidden">
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>Alex Durand</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>Admin</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>Thomas Martin</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>Commercial</div>
           </div>
         </div>
       </div>
