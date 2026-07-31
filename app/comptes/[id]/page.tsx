@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import TurnoverEvolutionChart from "@/components/TurnoverEvolutionChart";
 
 type AccountDetailKpi = {
   account_number: string;
@@ -635,76 +636,7 @@ export default function CompteDetailPage() {
           flexShrink: 0,
         }}
       >
-        <div
-          className="chart-card"
-          style={{
-            background: "white",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: 18,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            className="chart-title-row"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 14,
-            }}
-          >
-            <span
-              className="chart-title"
-              style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}
-            >
-              Évolution du CA
-            </span>
-            <div
-              className="chart-tabs"
-              style={{
-                display: "flex",
-                gap: 0,
-                background: "#f1f5f9",
-                borderRadius: 7,
-                overflow: "hidden",
-                padding: 2,
-              }}
-            >
-              {(["12m", "6m", "3m"] as const).map((t) => (
-                <button
-                  key={t}
-                  style={{
-                    padding: "4px 11px",
-                    border: "none",
-                    background: "transparent",
-                    fontSize: 11.5,
-                    color: "var(--muted)",
-                    cursor: "default",
-                    borderRadius: 5,
-                    fontFamily: "Figtree, sans-serif",
-                    fontWeight: 500,
-                    opacity: 0.5,
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: 180,
-              color: "var(--muted)",
-              fontSize: 13,
-            }}
-          >
-            Données mensuelles à venir
-          </div>
-        </div>
+        <TurnoverEvolutionChart accountNumber={accountNumber} />
 
         <div
           className="chart-card"
