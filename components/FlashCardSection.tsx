@@ -4,67 +4,101 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type HomeFlashcard = {
-  flashcard_type: "RISK" | "OPPORTUNITY";
   account_number: string;
   account_name: string;
+  SKU: string | null;
+  signal_type: string;
+  priority: "HIGH" | "MEDIUM" | "LOW";
   title: string;
   description: string;
-  priority: "HIGH" | "MEDIUM" | "LOW";
-  action: string;
-  current_turnover_ex_vat: number;
-  previous_turnover_ex_vat: number;
+  current_units: number | null;
+  previous_units: number | null;
+  units_evolution_percent: string | null;
+  current_turnover_ex_vat: number | null;
+  previous_turnover_ex_vat: number | null;
   turnover_evolution_percent: string | null;
+  last_order_date: string | null;
+};
+
+type SignalGroup = "OPPORTUNITY" | "RISK";
+
+type SignalMeta = {
+  label: string;
+  group: SignalGroup;
+  bg: string;
+  color: string;
+  icon: string;
+  action: string;
+};
+
+const signalMeta: Record<string, SignalMeta> = {
+  ACCOUNT_GROWTH_CROSS_SELL: {
+    label: "Compte en croissance",
+    group: "OPPORTUNITY",
+    bg: "#faf5ff",
+    color: "#7c3aed",
+    icon: "▲",
+    action:
+      "Identifier les nouvelles références à proposer pour développer l'assortiment du client.",
+  },
+  PRODUCT_ACCELERATION: {
+    label: "Accélération",
+    group: "OPPORTUNITY",
+    bg: "#f0fdf4",
+    color: "#15803d",
+    icon: "▲",
+    action:
+      "Contacter le client pour consolider la croissance et sécuriser les volumes.",
+  },
+  PRODUCT_DECELERATION: {
+    label: "Ralentissement",
+    group: "OPPORTUNITY",
+    bg: "#eff6ff",
+    color: "#2563eb",
+    icon: "▲",
+    action:
+      "Analyser les causes du ralentissement et relancer la dynamique de la référence.",
+  },
+  PRODUCT_DECLINE: {
+    label: "Déclin",
+    group: "RISK",
+    bg: "#fef2f2",
+    color: "#dc2626",
+    icon: "!",
+    action:
+      "Contacter le client pour comprendre la baisse et proposer un plan de relance.",
+  },
+  PRODUCT_EROSION: {
+    label: "Érosion",
+    group: "RISK",
+    bg: "#fef2f2",
+    color: "#dc2626",
+    icon: "!",
+    action:
+      "Contacter le client pour identifier les raisons de la baisse et relancer la référence.",
+  },
+  VOLUME_DOWN_REVENUE_STABLE: {
+    label: "Volume en baisse",
+    group: "RISK",
+    bg: "#fffbeb",
+    color: "#d97706",
+    icon: "!",
+    action:
+      "Vérifier les conditions de mise en avant et la disponibilité de la référence.",
+  },
 };
 
 const tabs = [
   { key: "all", label: "Toutes" },
-  { key: "RISK", label: "En risque" },
   { key: "OPPORTUNITY", label: "Opportunités" },
+  { key: "RISK", label: "En risque" },
 ];
-
-const badgeStyles: Record<string, { bg: string; color: string }> = {
-  RISK: { bg: "#fef2f2", color: "#dc2626" },
-  OPPORTUNITY: { bg: "#faf5ff", color: "#7c3aed" },
-};
-
-const badgeLabels: Record<string, string> = {
-  RISK: "En risque",
-  OPPORTUNITY: "Opportunité",
-};
 
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
     currency: "EUR",
   }).format(cents / 100);
-}
-
-function formatFlashcardSentences(card: HomeFlashcard) {
-  const isRelance = card.title === "Client à relancer";
-
-  if (isRelance) {
-    return {
-      title: "Client à relancer",
-      description: `Dernière commande ancienne. Contacter ${card.account_name} pour relancer l'activité.`,
-    };
-  }
-
-  const pct = card.turnover_evolution_percent
-    ? new Intl.NumberFormat("fr-FR", {
-        style: "percent",
-        maximumFractionDigits: 1,
-      }).format(Math.abs(parseFloat(card.turnover_evolution_percent)) / 100)
-    : null;
-
-  const direction =
-    card.flashcard_type === "OPPORTUNITY" ? "hausse" : "baisse";
-
-  const title = `CA en ${direction} de ${pct}`;
-
-  const description =
-    `Le CA est passé de ${formatEur(card.previous_turnover_ex_vat)} à ${formatEur(card.current_turnover_ex_vat)} vs N-1.`;
-
-  return { title, description };
 }
 
 export default function FlashCardSection() {
@@ -76,16 +110,19 @@ export default function FlashCardSection() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.rpc("get_home_flashcards").then(({ data, error }) => {
-      if (!error && data) setFlashcards(data as HomeFlashcard[]);
-      setLoading(false);
-    });
+    const today = new Date().toISOString().slice(0, 10);
+    supabase
+      .rpc("get_home_flashcards", { current_end_date: today })
+      .then(({ data, error }) => {
+        if (!error && data) setFlashcards(data as HomeFlashcard[]);
+        setLoading(false);
+      });
   }, []);
 
   const filtered =
     activeTab === "all"
       ? flashcards
-      : flashcards.filter((c) => c.flashcard_type === activeTab);
+      : flashcards.filter((c) => signalMeta[c.signal_type]?.group === activeTab);
 
   const visibleCards = filtered.length > 0 ? filtered : flashcards;
   const current = visibleCards[activeIndex] ?? visibleCards[0];
@@ -115,9 +152,16 @@ export default function FlashCardSection() {
   }
 
   function renderCard(card: HomeFlashcard, detailed: boolean) {
-    const sentences = formatFlashcardSentences(card);
-    const badge = badgeStyles[card.flashcard_type] ?? badgeStyles.RISK;
-    const badgeLabel = badgeLabels[card.flashcard_type] ?? "Alerte";
+    const meta = signalMeta[card.signal_type] ?? {
+      label: "Alerte",
+      group: "RISK",
+      bg: "#fef2f2",
+      color: "#dc2626",
+      icon: "!",
+      action: "",
+    };
+    const badge = { bg: meta.bg, color: meta.color };
+    const badgeLabel = meta.label;
     const priorityColor =
       card.priority === "HIGH"
         ? "var(--red)"
@@ -171,7 +215,7 @@ export default function FlashCardSection() {
               }}
             />
           </div>
-          {detailed && (
+          {detailed && card.current_turnover_ex_vat != null && (
             <span style={{ fontSize: 12, color: "var(--muted)" }}>
               {formatEur(card.current_turnover_ex_vat)} CA
             </span>
@@ -196,14 +240,12 @@ export default function FlashCardSection() {
               justifyContent: "center",
               fontSize: detailed ? 13 : 11,
               fontWeight: 700,
-              background:
-                card.flashcard_type === "RISK" ? "#fef2f2" : "#faf5ff",
-              color:
-                card.flashcard_type === "RISK" ? "#dc2626" : "#7c3aed",
+              background: meta.bg,
+              color: meta.color,
               flexShrink: 0,
             }}
           >
-            {card.flashcard_type === "RISK" ? "!" : "▲"}
+            {meta.icon}
           </div>
           <div>
             <div
@@ -218,6 +260,18 @@ export default function FlashCardSection() {
             <div style={{ fontSize: 11, color: "var(--muted)" }}>
               {card.account_number}
             </div>
+            {card.SKU && (
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: meta.color,
+                  marginTop: 2,
+                }}
+              >
+                {card.SKU}
+              </div>
+            )}
           </div>
         </div>
 
@@ -229,7 +283,7 @@ export default function FlashCardSection() {
             marginBottom: 4,
           }}
         >
-          {sentences.title}
+          {card.title}
         </div>
 
         {detailed && (
@@ -241,7 +295,7 @@ export default function FlashCardSection() {
               marginBottom: 12,
             }}
           >
-            {sentences.description}
+            {card.description}
           </div>
         )}
 
@@ -258,7 +312,7 @@ export default function FlashCardSection() {
               Action recommandée
             </div>
             <div style={{ fontSize: 12.5, color: "var(--text)", fontWeight: 500 }}>
-              {card.action}
+              {meta.action}
             </div>
           </div>
         )}
@@ -324,8 +378,8 @@ export default function FlashCardSection() {
             À traiter
           </h2>
           <p style={{ fontSize: 13, color: "var(--muted)", margin: "2px 0 0" }}>
-            {visibleCards.length} client
-            {visibleCards.length > 1 ? "s" : ""} nécessitent une action
+            {visibleCards.length} sign
+            {visibleCards.length > 1 ? "aux" : "l"} à traiter
           </p>
         </div>
 
@@ -397,7 +451,9 @@ export default function FlashCardSection() {
           const count =
             tab.key === "all"
               ? flashcards.length
-              : flashcards.filter((c) => c.flashcard_type === tab.key).length;
+              : flashcards.filter(
+                  (c) => signalMeta[c.signal_type]?.group === tab.key
+                ).length;
           return (
             <button
               key={tab.key}
@@ -554,7 +610,7 @@ export default function FlashCardSection() {
           className="max-md:grid-cols-1"
         >
           {visibleCards.map((card) => (
-            <div key={card.account_number}>
+            <div key={`${card.account_number}-${card.SKU ?? "account"}`}>
               {renderCard(card, false)}
             </div>
           ))}
