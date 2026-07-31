@@ -637,6 +637,29 @@ export default function CompteDetailPage() {
           }}
         >
           <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
+            CA total
+          </div>
+          <div
+            className="ck-val"
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              color: "var(--text)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {formatEur(kpi.total_turnover_ex_vat)}
+          </div>
+        </div>
+        <div
+          className="compte-kpi"
+          style={{
+            flex: 1,
+            padding: "13px 14px",
+            borderRight: "1px solid var(--border)",
+          }}
+        >
+          <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
             CA période
           </div>
           <div
@@ -713,29 +736,6 @@ export default function CompteDetailPage() {
           }}
         >
           <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
-            Nbre Commandes
-          </div>
-          <div
-            className="ck-val"
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              color: "var(--text)",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            {rfm?.frequency ?? "—"}
-          </div>
-        </div>
-        <div
-          className="compte-kpi"
-          style={{
-            flex: 1,
-            padding: "13px 14px",
-            borderRight: "1px solid var(--border)",
-          }}
-        >
-          <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
             Délai moyen
           </div>
           <div
@@ -750,31 +750,6 @@ export default function CompteDetailPage() {
             {kpi.average_days_between_orders !== null
               ? `${formatNumber(kpi.average_days_between_orders)} jours`
               : "—"}
-          </div>
-        </div>
-        <div
-          className="compte-kpi"
-          style={{
-            flex: 1,
-            padding: "13px 14px",
-            borderRight: "1px solid var(--border)",
-          }}
-        >
-          <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
-            Score RFM
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              className="ck-val"
-              style={{
-                fontSize: 16,
-                fontWeight: 800,
-                color: "var(--text)",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {rfm?.rfm_score ?? "—"}
-            </span>
           </div>
         </div>
         <div className="compte-kpi" style={{ flex: 1, padding: "13px 14px" }}>
