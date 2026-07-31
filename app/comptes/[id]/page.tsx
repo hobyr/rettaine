@@ -12,23 +12,23 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import TurnoverEvolutionChart from "@/components/TurnoverEvolutionChart";
+import DatePicker from "@/components/DatePicker";
 
 type AccountDetailKpi = {
   account_number: string;
   account_name: string;
-  ytd_turnover_ex_vat: number;
-  ytd_turnover_evolution_percent: string | null;
+  total_turnover_ex_vat: number;
+  period_turnover_ex_vat: number;
+  previous_period_turnover_ex_vat: number;
+  turnover_evolution_percent: string | null;
+  period_average_order_value: number;
+  previous_period_average_order_value: number;
+  average_order_value_evolution: number | null;
+  average_days_between_orders: number | null;
+  previous_average_days_between_orders: number | null;
+  days_between_orders_evolution: number | null;
   last_order_date: string | null;
   days_since_last_order: number | null;
-  average_days_between_orders: number | null;
-  average_days_between_orders_previous_6_months: number | null;
-  days_between_orders_evolution: number | null;
-  ytd_average_order_value: number;
-  previous_ytd_average_order_value: number;
-  average_order_value_evolution: number;
-  turnover_12_months_ex_vat: number;
-  previous_12_months_turnover_ex_vat: number;
-  turnover_12_months_evolution_percent: string | null;
 };
 
 type AccountRfmPeriod = {
@@ -57,11 +57,11 @@ type AccountRfmPosition = {
 
 type AccountProductPerformance = {
   sku: string;
-  ytd_turnover_ex_vat: number;
-  previous_ytd_turnover_ex_vat: number;
+  period_turnover_ex_vat: number;
+  previous_period_turnover_ex_vat: number;
   turnover_evolution_percent: string | null;
-  ytd_quantity: number;
-  previous_ytd_quantity: number;
+  period_quantity: number;
+  previous_period_quantity: number;
   quantity_evolution_percent: string | null;
 };
 
@@ -168,18 +168,47 @@ export default function CompteDetailPage() {
   const [productNames, setProductNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [appliedStartDate, setAppliedStartDate] = useState("");
+  const [appliedEndDate, setAppliedEndDate] = useState("");
+
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-01-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${now.getFullYear()}-${m}-${d}`;
+  });
+
+  const handleStartChange = (iso: string) => {
+    setStartDate(iso);
+    if (endDate < iso) setEndDate(iso);
+  };
+
+  const handleEndChange = (iso: string) => {
+    setEndDate(iso);
+    if (iso < startDate) setStartDate(iso);
+  };
 
   useEffect(() => {
     const supabase = createClient();
-    const startDate = "2026-01-01";
-    const endDate = "2026-07-30";
 
     Promise.all([
-      supabase.rpc("get_account_detail_kpis", { p_account_number: accountNumber }),
+      supabase.rpc("get_account_detail_kpis", {
+        p_account_number: accountNumber,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      }),
       supabase.from("accounts").select("type, region").eq("account_number", accountNumber).single(),
       supabase.rpc("get_account_rfm_by_period", { start_date: startDate, end_date: endDate }),
       supabase.rpc("get_account_rfm_position_vs_global_portfolio", { p_account_number: accountNumber }),
-      supabase.rpc("get_account_product_performance_by_account", { p_account_number: accountNumber }),
+      supabase.rpc("get_account_product_performance_by_account", {
+        p_account_number: accountNumber,
+        p_start_date: startDate,
+        p_end_date: endDate,
+      }),
       supabase.from("products").select("SKU, designation"),
     ]).then(([kpiRes, accountRes, rfmPeriodRes, rfmPosRes, prodRes, productRows]) => {
       if (kpiRes.error || accountRes.error) {
@@ -203,8 +232,12 @@ export default function CompteDetailPage() {
         );
       }
       setLoading(false);
+      setAppliedStartDate(startDate);
+      setAppliedEndDate(endDate);
     });
-  }, [accountNumber]);
+  }, [accountNumber, startDate, endDate]);
+
+  const refreshing = appliedStartDate !== startDate || appliedEndDate !== endDate;
 
   const { slices: donutSlices, total: donutTotal } = useMemo<
     { slices: DonutSlice[]; total: number }
@@ -213,7 +246,7 @@ export default function CompteDetailPage() {
       products?.map((p, i) => ({
         sku: p.sku,
         name: productNames.get(p.sku) ?? p.sku,
-        value: p.ytd_turnover_ex_vat,
+        value: p.period_turnover_ex_vat,
         color: TOP_PRODUCTS_PALETTE[i % TOP_PRODUCTS_PALETTE.length],
       })) ?? [];
     const total = slices.reduce((sum, s) => sum + s.value, 0);
@@ -447,11 +480,19 @@ export default function CompteDetailPage() {
             display: "flex",
             gap: 8,
             alignItems: "center",
+            justifyContent: "space-between",
             marginTop: 12,
           }}
         >
-          <button
-            className="btn-outline"
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            <button
+              className="btn-outline"
             style={{
               display: "flex",
               alignItems: "center",
@@ -555,6 +596,23 @@ export default function CompteDetailPage() {
             </svg>
             Voir les commandes
           </button>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 14,
+              alignItems: "center",
+            }}
+          >
+            <DatePicker label="Du" value={startDate} onChange={handleStartChange} />
+            <DatePicker label="Au" value={endDate} onChange={handleEndChange} />
+            {refreshing && (
+              <span style={{ fontSize: 11.5, color: "var(--muted)", fontWeight: 500 }}>
+                Mise à jour…
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -579,7 +637,7 @@ export default function CompteDetailPage() {
           }}
         >
           <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
-            CA YTD
+            CA période
           </div>
           <div
             className="ck-val"
@@ -590,7 +648,7 @@ export default function CompteDetailPage() {
               letterSpacing: "-0.02em",
             }}
           >
-            {formatEur(kpi.ytd_turnover_ex_vat)}
+            {formatEur(kpi.period_turnover_ex_vat)}
           </div>
           <div
             style={{
@@ -598,13 +656,13 @@ export default function CompteDetailPage() {
               fontWeight: 600,
               marginTop: 2,
               color:
-                kpi.ytd_turnover_evolution_percent !== null &&
-                parseFloat(kpi.ytd_turnover_evolution_percent) >= 0
+                kpi.turnover_evolution_percent !== null &&
+                parseFloat(kpi.turnover_evolution_percent) >= 0
                   ? "var(--green)"
                   : "var(--red)",
             }}
           >
-            {formatEvolution(kpi.ytd_turnover_evolution_percent)} vs N-1
+            {formatEvolution(kpi.turnover_evolution_percent)} vs N-1
           </div>
         </div>
         <div
@@ -627,7 +685,7 @@ export default function CompteDetailPage() {
               letterSpacing: "-0.02em",
             }}
           >
-            {formatEur(kpi.ytd_average_order_value)}
+            {formatEur(kpi.period_average_order_value)}
           </div>
           <div
             style={{
@@ -635,13 +693,15 @@ export default function CompteDetailPage() {
               fontWeight: 600,
               marginTop: 2,
               color:
+                kpi.average_order_value_evolution !== null &&
                 kpi.average_order_value_evolution >= 0
                   ? "var(--green)"
                   : "var(--red)",
             }}
           >
-            {kpi.average_order_value_evolution >= 0 ? "+" : ""}
-            {formatEur(Math.abs(kpi.average_order_value_evolution))} vs N-1
+            {kpi.average_order_value_evolution !== null
+              ? `${kpi.average_order_value_evolution >= 0 ? "+" : ""}${formatEur(Math.abs(kpi.average_order_value_evolution))} vs N-1`
+              : "—"}
           </div>
         </div>
         <div
@@ -965,7 +1025,7 @@ export default function CompteDetailPage() {
                     }}
                   >
                     <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>
-                      CA 2026
+                      CA période
                     </span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>
                       {formatEur(donutTotal)}
@@ -1078,19 +1138,19 @@ export default function CompteDetailPage() {
                           )}
                         </td>
                         <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: "var(--text)", fontSize: 10.5 }}>
-                          {formatEur(p.ytd_turnover_ex_vat)}
+                          {formatEur(p.period_turnover_ex_vat)}
                         </td>
                         <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", color: "var(--muted)", fontSize: 10.5 }}>
-                          {formatEur(p.previous_ytd_turnover_ex_vat)}
+                          {formatEur(p.previous_period_turnover_ex_vat)}
                         </td>
                         <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: evolutionColor(p.turnover_evolution_percent), fontSize: 10.5 }}>
                           {formatEvolution(p.turnover_evolution_percent)}
                         </td>
                         <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: "var(--text)", fontSize: 10.5 }}>
-                          {formatNumber(p.ytd_quantity)}
+                          {formatNumber(p.period_quantity)}
                         </td>
                         <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", color: "var(--muted)", fontSize: 10.5 }}>
-                          {formatNumber(p.previous_ytd_quantity)}
+                          {formatNumber(p.previous_period_quantity)}
                         </td>
                         <td style={{ paddingTop: 8, textAlign: "right", fontWeight: 600, color: evolutionColor(p.quantity_evolution_percent), fontSize: 10.5 }}>
                           {formatEvolution(p.quantity_evolution_percent)}
@@ -1186,7 +1246,7 @@ export default function CompteDetailPage() {
                   marginTop: 2,
                 }}
               >
-                vs période précédente
+                vs N-1
               </div>
             </div>
             <div
@@ -1201,21 +1261,21 @@ export default function CompteDetailPage() {
                 className="cmd-metric-label"
                 style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 3 }}
               >
-                CA 12 mois
+                CA période
               </div>
               <div
                 className="cmd-metric-val"
                 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}
               >
-                {formatEur(kpi.turnover_12_months_ex_vat)}
+                {formatEur(kpi.period_turnover_ex_vat)}
               </div>
               <div
                 className="cmd-metric-sub"
                 style={{
                   fontSize: 10,
                   color:
-                    kpi.turnover_12_months_evolution_percent !== null &&
-                    parseFloat(kpi.turnover_12_months_evolution_percent) >= 0
+                    kpi.turnover_evolution_percent !== null &&
+                    parseFloat(kpi.turnover_evolution_percent) >= 0
                       ? "var(--green)"
                       : "var(--red)",
                   marginTop: 2,
@@ -1224,7 +1284,7 @@ export default function CompteDetailPage() {
                   gap: 3,
                 }}
               >
-                {formatEvolution(kpi.turnover_12_months_evolution_percent)} vs N-1
+                {formatEvolution(kpi.turnover_evolution_percent)} vs N-1
               </div>
             </div>
           </div>
