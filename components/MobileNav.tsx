@@ -89,7 +89,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="md:hidden"
+      className="flex md:hidden"
       style={{
         position: "fixed",
         bottom: 0,
@@ -99,7 +99,6 @@ export default function MobileNav() {
         borderTop: "1px solid var(--border)",
         zIndex: 100,
         padding: "6px 0",
-        display: "flex",
         overflowX: "auto",
         flexWrap: "nowrap",
         WebkitOverflowScrolling: "touch",
