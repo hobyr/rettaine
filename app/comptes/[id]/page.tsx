@@ -805,7 +805,11 @@ export default function CompteDetailPage() {
           flexShrink: 0,
         }}
       >
-        <TurnoverEvolutionChart accountNumber={accountNumber} />
+        <TurnoverEvolutionChart
+          accountNumber={accountNumber}
+          startDate={startDate}
+          endDate={endDate}
+        />
 
         <div
           className="chart-card"

@@ -12,28 +12,18 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 
-type TurnoverEvolutionRow = {
-  account_number: string;
-  month_number: number;
-  month_name: string;
-  current_year: number;
-  previous_year: number;
-  current_year_turnover: string;
-  previous_year_turnover: string;
-  current_year_ytd_turnover: string;
-  previous_year_ytd_turnover: string;
-  monthly_evolution_amount: string;
-  monthly_evolution_percent: string | null;
-  ytd_evolution_amount: string;
-  ytd_evolution_percent: string | null;
+type TurnoverPeriodRow = {
+  bucket_key: string;
+  period_turnover: number;
+  previous_period_turnover: number;
+  evolution_percent: string | null;
 };
 
 type ChartPoint = {
+  key: string;
   month: string;
   monthFull: string;
-  currentYear: number;
-  previousYear: number;
-  current: number;
+  period: number;
   previous: number;
   evolutionPercent: number | null;
 };
@@ -67,14 +57,6 @@ const MONTHS_FR_FULL = [
   "Novembre",
   "Décembre",
 ];
-
-const ranges = [
-  { key: "12m", label: "12m" },
-  { key: "6m", label: "6m" },
-  { key: "3m", label: "3m" },
-] as const;
-
-type RangeKey = (typeof ranges)[number]["key"];
 
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("fr-FR", {
@@ -146,9 +128,9 @@ function ChartTooltip({
             gap: 16,
           }}
         >
-          <span style={{ color: "var(--muted)" }}>CA {point.currentYear}</span>
+          <span style={{ color: "var(--muted)" }}>CA période</span>
           <span style={{ fontWeight: 700, color: "#2563eb" }}>
-            {formatEur(point.current)}
+            {formatEur(point.period)}
           </span>
         </div>
         <div
@@ -158,7 +140,7 @@ function ChartTooltip({
             gap: 16,
           }}
         >
-          <span style={{ color: "var(--muted)" }}>CA {point.previousYear}</span>
+          <span style={{ color: "var(--muted)" }}>CA N-1</span>
           <span style={{ fontWeight: 600, color: "#94a3b8" }}>
             {formatEur(point.previous)}
           </span>
@@ -192,54 +174,56 @@ function ChartTooltip({
 
 export default function TurnoverEvolutionChart({
   accountNumber,
+  startDate,
+  endDate,
 }: {
   accountNumber: string;
+  startDate: string;
+  endDate: string;
 }) {
-  const [rows, setRows] = useState<TurnoverEvolutionRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState<RangeKey>("12m");
+  const [rows, setRows] = useState<TurnoverPeriodRow[]>([]);
+  const [appliedRange, setAppliedRange] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
+  const loading =
+    appliedRange === null ||
+    appliedRange.start !== startDate ||
+    appliedRange.end !== endDate;
 
   useEffect(() => {
     const supabase = createClient();
-    const now = new Date();
 
     supabase
-      .rpc("get_account_turnover_evolution", {
+      .rpc("get_account_turnover_by_period", {
         p_account_number: accountNumber,
-        p_year: now.getFullYear(),
-        p_month: now.getMonth() + 1,
+        p_start_date: startDate,
+        p_end_date: endDate,
       })
       .then(({ data, error }) => {
-        if (!error && data) setRows(data as TurnoverEvolutionRow[]);
-        setLoading(false);
+        if (!error && data) setRows(data as TurnoverPeriodRow[]);
+        setAppliedRange({ start: startDate, end: endDate });
       });
-  }, [accountNumber]);
+  }, [accountNumber, startDate, endDate]);
 
   const points = useMemo<ChartPoint[]>(
     () =>
-      rows.map((r) => ({
-        month: MONTHS_FR_SHORT[r.month_number - 1] ?? String(r.month_number),
-        monthFull: MONTHS_FR_FULL[r.month_number - 1] ?? r.month_name,
-        currentYear: r.current_year,
-        previousYear: r.previous_year,
-        current: Number(r.current_year_turnover),
-        previous: Number(r.previous_year_turnover),
-        evolutionPercent:
-          r.monthly_evolution_percent !== null
-            ? Number(r.monthly_evolution_percent)
-            : null,
-      })),
+      rows.map((r) => {
+        const [y, m] = r.bucket_key.split("-").map(Number);
+        return {
+          key: r.bucket_key,
+          month: `${MONTHS_FR_SHORT[m - 1] ?? ""} ${y}`,
+          monthFull: `${MONTHS_FR_FULL[m - 1] ?? ""} ${y}`,
+          period: r.period_turnover,
+          previous: r.previous_period_turnover,
+          evolutionPercent:
+            r.evolution_percent !== null
+              ? Number(r.evolution_percent)
+              : null,
+        };
+      }),
     [rows]
   );
-
-  const visible = useMemo(() => {
-    if (range === "12m") return points;
-    if (range === "6m") return points.slice(-6);
-    return points.slice(-3);
-  }, [points, range]);
-
-  const currentYear = points[0]?.currentYear ?? new Date().getFullYear();
-  const previousYear = points[0]?.previousYear ?? currentYear - 1;
 
   return (
     <div
@@ -264,39 +248,6 @@ export default function TurnoverEvolutionChart({
         >
           Évolution du CA
         </span>
-        <div
-          style={{
-            display: "flex",
-            gap: 0,
-            background: "#f1f5f9",
-            borderRadius: 7,
-            overflow: "hidden",
-            padding: 2,
-          }}
-        >
-          {ranges.map((r) => (
-            <button
-              key={r.key}
-              onClick={() => setRange(r.key)}
-              style={{
-                padding: "4px 11px",
-                border: "none",
-                background: range === r.key ? "white" : "transparent",
-                fontSize: 11.5,
-                color: range === r.key ? "var(--text)" : "var(--muted)",
-                cursor: "pointer",
-                borderRadius: 5,
-                fontFamily: "Figtree, sans-serif",
-                fontWeight: range === r.key ? 600 : 500,
-                boxShadow:
-                  range === r.key ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-                transition: "all 0.15s",
-              }}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div
@@ -317,11 +268,11 @@ export default function TurnoverEvolutionChart({
               borderRadius: 1,
             }}
           />
-          CA {currentYear}
+          CA période
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 16, borderTop: "2px dashed #94a3b8" }} />
-          CA {previousYear}
+          CA N-1
         </span>
       </div>
 
@@ -338,7 +289,7 @@ export default function TurnoverEvolutionChart({
         >
           Chargement…
         </div>
-      ) : visible.length === 0 ? (
+      ) : points.length === 0 ? (
         <div
           style={{
             display: "flex",
@@ -354,7 +305,7 @@ export default function TurnoverEvolutionChart({
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart
-            data={visible}
+            data={points}
             margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
           >
             <CartesianGrid
@@ -382,7 +333,7 @@ export default function TurnoverEvolutionChart({
             />
             <Line
               type="monotone"
-              dataKey="current"
+              dataKey="period"
               stroke="#2563eb"
               strokeWidth={2.5}
               dot={{ r: 3, fill: "#2563eb", strokeWidth: 0 }}
