@@ -936,7 +936,7 @@ export default function CompteDetailPage() {
                 <div style={{ position: "relative", width: "100%", height: 205 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Tooltip content={<DonutTooltip />} />
+                      <Tooltip content={<DonutTooltip />} wrapperStyle={{ zIndex: 10 }} />
                       <Pie
                         data={donutSlices}
                         dataKey="value"
