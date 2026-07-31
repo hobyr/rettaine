@@ -100,7 +100,7 @@ function formatEvolution(pct: string | null): string {
   const formatted = new Intl.NumberFormat("fr-FR", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
-  }).format(Math.abs(n));
+  }).format(n);
   return `${sign}${formatted}%`;
 }
 
