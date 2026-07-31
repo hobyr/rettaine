@@ -579,7 +579,7 @@ export default function CompteDetailPage() {
           }}
         >
           <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
-            CA Total
+            CA YTD
           </div>
           <div
             className="ck-val"
