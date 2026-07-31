@@ -55,11 +55,19 @@ function formatEur(cents: number): string {
   }).format(cents / 100);
 }
 
+function formatNumber(n: number): string {
+  return new Intl.NumberFormat("fr-FR").format(n);
+}
+
 function formatEvolution(pct: string | null): string {
   if (pct === null) return "—";
   const n = parseFloat(pct);
   const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(1)}%`;
+  const formatted = new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Math.abs(n));
+  return `${sign}${formatted}%`;
 }
 
 function formatDays(days: number | null): string {
@@ -579,7 +587,7 @@ export default function CompteDetailPage() {
             }}
           >
             {kpi.average_days_between_orders !== null
-              ? `${kpi.average_days_between_orders} jours`
+              ? `${formatNumber(kpi.average_days_between_orders)} jours`
               : "—"}
           </div>
         </div>
@@ -833,7 +841,7 @@ export default function CompteDetailPage() {
               }}
             >
               {kpi.average_days_between_orders !== null
-                ? `${kpi.average_days_between_orders} jours`
+                ? `${formatNumber(kpi.average_days_between_orders)} jours`
                 : "—"}
             </div>
           </div>
@@ -867,7 +875,7 @@ export default function CompteDetailPage() {
                 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}
               >
                 {kpi.days_between_orders_evolution !== null
-                  ? `${kpi.days_between_orders_evolution >= 0 ? "+" : ""}${kpi.days_between_orders_evolution} jours`
+                  ? `${kpi.days_between_orders_evolution >= 0 ? "+" : ""}${formatNumber(kpi.days_between_orders_evolution)} jours`
                   : "—"}
               </div>
               <div
