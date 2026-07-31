@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import {
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import TurnoverEvolutionChart from "@/components/TurnoverEvolutionChart";
 
@@ -48,6 +55,33 @@ type AccountRfmPosition = {
   portfolio_average_monetary_score: string;
 };
 
+type AccountProductPerformance = {
+  sku: string;
+  ytd_turnover_ex_vat: number;
+  previous_ytd_turnover_ex_vat: number;
+  turnover_evolution_percent: string | null;
+  ytd_quantity: number;
+  previous_ytd_quantity: number;
+  quantity_evolution_percent: string | null;
+};
+
+type DonutSlice = {
+  sku: string;
+  name: string;
+  value: number;
+  color: string;
+  share: number;
+};
+
+const TOP_PRODUCTS_PALETTE = [
+  "#2563eb",
+  "#7c3aed",
+  "#16a34a",
+  "#ea580c",
+  "#dc2626",
+  "#14b8a6",
+];
+
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -92,6 +126,36 @@ const rfmStatusStyles: Record<string, { background: string; color: string }> = {
   Critique: { background: "#fef2f2", color: "#dc2626" },
 };
 
+function DonutTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: DonutSlice }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div
+      style={{
+        background: "white",
+        border: "1px solid var(--border)",
+        borderRadius: 8,
+        padding: "8px 10px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        fontSize: 11,
+      }}
+    >
+      <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 3 }}>
+        {d.name}
+      </div>
+      <div style={{ color: "var(--muted)" }}>
+        {formatEur(d.value)} · {d.share} %
+      </div>
+    </div>
+  );
+}
+
 export default function CompteDetailPage() {
   const params = useParams<{ id: string }>();
   const accountNumber = params.id;
@@ -100,6 +164,8 @@ export default function CompteDetailPage() {
   const [accountInfo, setAccountInfo] = useState<{ type: string; region: string } | null>(null);
   const [rfm, setRfm] = useState<AccountRfmPeriod | null>(null);
   const [rfmPos, setRfmPos] = useState<AccountRfmPosition | null>(null);
+  const [products, setProducts] = useState<AccountProductPerformance[] | null>(null);
+  const [productNames, setProductNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -113,7 +179,9 @@ export default function CompteDetailPage() {
       supabase.from("accounts").select("type, region").eq("account_number", accountNumber).single(),
       supabase.rpc("get_account_rfm_by_period", { start_date: startDate, end_date: endDate }),
       supabase.rpc("get_account_rfm_position_vs_global_portfolio", { p_account_number: accountNumber }),
-    ]).then(([kpiRes, accountRes, rfmPeriodRes, rfmPosRes]) => {
+      supabase.rpc("get_account_product_performance_by_account", { p_account_number: accountNumber }),
+      supabase.from("products").select("SKU, designation"),
+    ]).then(([kpiRes, accountRes, rfmPeriodRes, rfmPosRes, prodRes, productRows]) => {
       if (kpiRes.error || accountRes.error) {
         setError(true);
         setLoading(false);
@@ -128,9 +196,35 @@ export default function CompteDetailPage() {
         if (match) setRfm(match);
       }
       if (rfmPosRes.data?.[0]) setRfmPos(rfmPosRes.data[0]);
+      if (prodRes.data) setProducts(prodRes.data);
+      if (productRows.data) {
+        setProductNames(
+          new Map(productRows.data.map((p) => [p.SKU, p.designation]))
+        );
+      }
       setLoading(false);
     });
   }, [accountNumber]);
+
+  const { slices: donutSlices, total: donutTotal } = useMemo<
+    { slices: DonutSlice[]; total: number }
+  >(() => {
+    const slices =
+      products?.map((p, i) => ({
+        sku: p.sku,
+        name: productNames.get(p.sku) ?? p.sku,
+        value: p.ytd_turnover_ex_vat,
+        color: TOP_PRODUCTS_PALETTE[i % TOP_PRODUCTS_PALETTE.length],
+      })) ?? [];
+    const total = slices.reduce((sum, s) => sum + s.value, 0);
+    return {
+      slices: slices.map((s) => ({
+        ...s,
+        share: total === 0 ? 0 : Math.round((s.value / total) * 100),
+      })),
+      total,
+    };
+  }, [products, productNames]);
 
   if (loading) {
     return (
@@ -187,6 +281,13 @@ export default function CompteDetailPage() {
     { label: "Fréquence", score: rfm?.frequency_score ?? null, max: 10 },
     { label: "Montant", score: rfm?.monetary_score ?? null, max: 10 },
   ];
+
+  const evolutionColor = (pct: string | null) =>
+    pct === null
+      ? "var(--muted)"
+      : parseFloat(pct) >= 0
+        ? "var(--green)"
+        : "var(--red)";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
@@ -765,7 +866,7 @@ export default function CompteDetailPage() {
         className="bottom-row"
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "2fr 1fr",
           gap: 14,
           margin: "14px 28px 0",
           flexShrink: 0,
@@ -778,6 +879,7 @@ export default function CompteDetailPage() {
             border: "1px solid var(--border)",
             borderRadius: 12,
             padding: 18,
+            minWidth: 0,
           }}
         >
           <div
@@ -791,18 +893,216 @@ export default function CompteDetailPage() {
           >
             Top Produits
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: 180,
-              color: "var(--muted)",
-              fontSize: 13,
-            }}
-          >
-            Données à venir
-          </div>
+          {!products ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: 180,
+                color: "var(--muted)",
+                fontSize: 13,
+              }}
+            >
+              Données indisponibles
+            </div>
+          ) : products.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: 180,
+                color: "var(--muted)",
+                fontSize: 13,
+              }}
+            >
+              Aucun produit sur la période
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 18, alignItems: "stretch" }}>
+              <div
+                style={{
+                  width: 282,
+                  flexShrink: 0,
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  background: "#f1f5f9",
+                  borderRadius: 10,
+                  padding: 10,
+                }}
+              >
+                <div style={{ position: "relative", width: "100%", height: 205 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip content={<DonutTooltip />} />
+                      <Pie
+                        data={donutSlices}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={70}
+                        outerRadius={94}
+                        paddingAngle={2}
+                        cornerRadius={4}
+                        stroke="none"
+                      >
+                        {donutSlices.map((d) => (
+                          <Cell key={d.sku} fill={d.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 600 }}>
+                      CA 2026
+                    </span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>
+                      {formatEur(donutTotal)}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: "100%",
+                    marginTop: 10,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 5,
+                  }}
+                >
+                  {donutSlices.map((d) => (
+                    <div
+                      key={d.sku}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 10.5,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 2,
+                          background: d.color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          color: "var(--text)",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {d.name}
+                      </span>
+                      <span style={{ color: "var(--muted)", fontWeight: 600, flexShrink: 0 }}>
+                        {d.share} %
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0, overflowX: "auto" }}>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: "var(--muted)",
+                        paddingBottom: 6,
+                        paddingRight: 10,
+                        width: "100%",
+                      }}
+                    >
+                      Produit
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6, paddingRight: 5 }}>
+                      CA
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6, paddingRight: 5 }}>
+                      CA N-1
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6, paddingRight: 5 }}>
+                      Évol CA
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6, paddingRight: 5 }}>
+                      Qté
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6, paddingRight: 5 }}>
+                      Qté N-1
+                    </th>
+                    <th style={{ textAlign: "right", fontSize: 10, fontWeight: 600, color: "var(--muted)", paddingBottom: 6 }}>
+                      Évol Qté
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((p) => {
+                    const name = productNames.get(p.sku);
+                    return (
+                      <tr key={p.sku} style={{ borderTop: "1px solid var(--border)" }}>
+                        <td style={{ paddingTop: 8, paddingRight: 5, width: "100%", whiteSpace: "normal" }}>
+                          <div style={{ fontWeight: 600, color: "var(--text)", fontSize: 10.5 }}>
+                            {name ?? p.sku}
+                          </div>
+                          {name && (
+                            <div style={{ fontSize: 9.5, color: "var(--light)" }}>
+                              {p.sku}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: "var(--text)", fontSize: 10.5 }}>
+                          {formatEur(p.ytd_turnover_ex_vat)}
+                        </td>
+                        <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", color: "var(--muted)", fontSize: 10.5 }}>
+                          {formatEur(p.previous_ytd_turnover_ex_vat)}
+                        </td>
+                        <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: evolutionColor(p.turnover_evolution_percent), fontSize: 10.5 }}>
+                          {formatEvolution(p.turnover_evolution_percent)}
+                        </td>
+                        <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", fontWeight: 600, color: "var(--text)", fontSize: 10.5 }}>
+                          {formatNumber(p.ytd_quantity)}
+                        </td>
+                        <td style={{ paddingTop: 8, paddingRight: 5, textAlign: "right", color: "var(--muted)", fontSize: 10.5 }}>
+                          {formatNumber(p.previous_ytd_quantity)}
+                        </td>
+                        <td style={{ paddingTop: 8, textAlign: "right", fontWeight: 600, color: evolutionColor(p.quantity_evolution_percent), fontSize: 10.5 }}>
+                          {formatEvolution(p.quantity_evolution_percent)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          )}
         </div>
 
         <div
