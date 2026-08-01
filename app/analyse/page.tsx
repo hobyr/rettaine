@@ -215,7 +215,7 @@ export default function AnalysePage() {
           </div>
         </div>
         <div className="compte-kpi" style={{ flex: 1, padding: "13px 14px", borderRight: "1px solid var(--border)" }}>
-          <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>CA annuel</div>
+          <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>CA portefeuille YTD</div>
           <div className="ck-val" style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>
             {kpi ? formatEur(kpi.ytd_turnover) : "—"}
           </div>
