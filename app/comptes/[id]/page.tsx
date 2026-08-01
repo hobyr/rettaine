@@ -752,6 +752,22 @@ export default function CompteDetailPage() {
               ? `${formatNumber(kpi.average_days_between_orders)} jours`
               : "—"}
           </div>
+          <div
+            style={{
+              fontSize: 10.5,
+              fontWeight: 600,
+              marginTop: 2,
+              color:
+                kpi.days_between_orders_evolution !== null &&
+                kpi.days_between_orders_evolution < 0
+                  ? "var(--green)"
+                  : "var(--red)",
+            }}
+          >
+            {kpi.days_between_orders_evolution !== null
+              ? `${kpi.days_between_orders_evolution >= 0 ? "+" : ""}${formatNumber(kpi.days_between_orders_evolution)} jours vs N-1`
+              : "—"}
+          </div>
         </div>
         <div className="compte-kpi" style={{ flex: 1, padding: "13px 14px" }}>
           <div className="ck-label" style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 4 }}>
@@ -1144,132 +1160,6 @@ export default function CompteDetailPage() {
             </div>
           )}
         </div>
-
-        <div
-          className="bottom-card"
-          style={{
-            background: "white",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: 18,
-          }}
-        >
-          <div
-            className="bottom-title"
-            style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: "var(--text)",
-              marginBottom: 14,
-            }}
-          >
-            Commandes
-          </div>
-          <div className="cmd-total" style={{ marginBottom: 14 }}>
-            <div
-              className="cmd-total-label"
-              style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}
-            >
-              Délai moyen entre commandes
-            </div>
-            <div
-              className="cmd-total-val"
-              style={{
-                fontSize: 18,
-                fontWeight: 800,
-                color: "var(--text)",
-              }}
-            >
-              {kpi.average_days_between_orders !== null
-                ? `${formatNumber(kpi.average_days_between_orders)} jours`
-                : "—"}
-            </div>
-          </div>
-          <div
-            className="cmd-metrics"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginTop: 14,
-              paddingTop: 14,
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            <div
-              className="cmd-metric"
-              style={{
-                background: "#f8fafc",
-                borderRadius: 8,
-                padding: "10px 12px",
-              }}
-            >
-              <div
-                className="cmd-metric-label"
-                style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 3 }}
-              >
-                Évolution du délai
-              </div>
-              <div
-                className="cmd-metric-val"
-                style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}
-              >
-                {kpi.days_between_orders_evolution !== null
-                  ? `${kpi.days_between_orders_evolution >= 0 ? "+" : ""}${formatNumber(kpi.days_between_orders_evolution)} jours`
-                  : "—"}
-              </div>
-              <div
-                className="cmd-metric-sub"
-                style={{
-                  fontSize: 10,
-                  color: "var(--light)",
-                  marginTop: 2,
-                }}
-              >
-                vs N-1
-              </div>
-            </div>
-            <div
-              className="cmd-metric"
-              style={{
-                background: "#f8fafc",
-                borderRadius: 8,
-                padding: "10px 12px",
-              }}
-            >
-              <div
-                className="cmd-metric-label"
-                style={{ fontSize: 10.5, color: "var(--muted)", marginBottom: 3 }}
-              >
-                CA période
-              </div>
-              <div
-                className="cmd-metric-val"
-                style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}
-              >
-                {formatEur(kpi.period_turnover_ex_vat)}
-              </div>
-              <div
-                className="cmd-metric-sub"
-                style={{
-                  fontSize: 10,
-                  color:
-                    kpi.turnover_evolution_percent !== null &&
-                    parseFloat(kpi.turnover_evolution_percent) >= 0
-                      ? "var(--green)"
-                      : "var(--red)",
-                  marginTop: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 3,
-                }}
-              >
-                {formatEvolution(kpi.turnover_evolution_percent)} vs N-1
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <PerformanceComparison
         accountNumber={accountNumber}
