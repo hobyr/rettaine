@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import TurnoverEvolutionChart from "@/components/TurnoverEvolutionChart";
+import PerformanceComparison from "@/components/PerformanceComparison";
 import DatePicker from "@/components/DatePicker";
 
 type AccountDetailKpi = {
@@ -1270,34 +1271,11 @@ export default function CompteDetailPage() {
         </div>
       </div>
 
-      <div style={{ margin: "14px 28px 28px", flexShrink: 0 }}>
-        <div
-          style={{
-            fontSize: 13.5,
-            fontWeight: 700,
-            color: "var(--text)",
-            marginBottom: 12,
-          }}
-        >
-          Forces & Faiblesses
-        </div>
-        <div
-          style={{
-            background: "white",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: 18,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 80,
-            color: "var(--muted)",
-            fontSize: 13,
-          }}
-        >
-          Analyse à venir — basée sur les comparaisons avec le portefeuille
-        </div>
-      </div>
+      <PerformanceComparison
+        accountNumber={accountNumber}
+        startDate={startDate}
+        endDate={endDate}
+      />
     </div>
   );
 }
