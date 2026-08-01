@@ -26,7 +26,6 @@ const navItems = [
         <path d="M15 13.5C15 11.2909 13.2091 9.5 11 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     ),
-    badge: 4,
   },
   {
     label: "Actions",
