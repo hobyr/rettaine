@@ -919,25 +919,17 @@ export default function CompteDetailPage() {
       </div>
 
       <div
-        className="bottom-row"
+        className="bottom-card"
         style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: 14,
+          background: "white",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          padding: 18,
+          minWidth: 0,
           margin: "14px 28px 0",
           flexShrink: 0,
         }}
       >
-        <div
-          className="bottom-card"
-          style={{
-            background: "white",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            padding: 18,
-            minWidth: 0,
-          }}
-        >
           <div
             className="bottom-title"
             style={{
