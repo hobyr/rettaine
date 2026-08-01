@@ -648,33 +648,62 @@ export default function PerformanceComparison({
           {formatRange(startDate, endDate)}
         </div>
 
-        <div className="search-wrap" style={{ position: "relative", maxWidth: 320, marginBottom: 12 }}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--light)" }}
-          >
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un compte..."
-            style={{
-              width: "100%",
-              padding: "8px 12px 8px 34px",
-              background: "white",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 13,
-              fontFamily: "Figtree, sans-serif",
-              color: "var(--text)",
-              outline: "none",
-            }}
-          />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <div className="search-wrap" style={{ position: "relative", maxWidth: 320 }}>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--light)" }}
+            >
+              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un compte..."
+              style={{
+                width: "100%",
+                padding: "8px 12px 8px 34px",
+                background: "white",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 13,
+                fontFamily: "Figtree, sans-serif",
+                color: "var(--text)",
+                outline: "none",
+              }}
+            />
+          </div>
+          {selected.length > 0 && (
+            <button
+              onClick={() => setSelected([])}
+              style={{
+                padding: "6px 12px",
+                background: "white",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--muted)",
+                cursor: "pointer",
+                fontFamily: "Figtree, sans-serif",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Tout désélectionner ({selected.length})
+            </button>
+          )}
         </div>
 
         <div
