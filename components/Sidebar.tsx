@@ -173,23 +173,6 @@ export default function Sidebar() {
             >
               {item.icon}
               <span>{item.label}</span>
-              {item.badge && (
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    background: isActive ? "rgba(255,255,255,0.25)" : "var(--active)",
-                    color: "white",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "1px 6px",
-                    borderRadius: 10,
-                    minWidth: 20,
-                    textAlign: "center",
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
             </a>
           );
         })}
