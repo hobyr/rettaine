@@ -321,7 +321,7 @@ export default function AnalysePage() {
       <div style={{ padding: "0 28px 24px", flexShrink: 0 }}>
         <SectionTitle>📦 PRODUITS</SectionTitle>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)" }}>🔥 Fonctionnent fort vs N-1</div>
@@ -353,9 +353,7 @@ export default function AnalysePage() {
               )}
             </div>
           </Card>
-        </div>
 
-        <div style={{ marginTop: 14 }}>
           <Card>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text)", marginBottom: 14 }}>
               📊 Taux de pénétration — % des {activeAccounts} comptes qui référencent le produit
