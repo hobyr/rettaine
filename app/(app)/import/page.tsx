@@ -4,8 +4,10 @@ import { useRef, useState } from "react";
 import {
   parseCsv,
   normalizeOrderRows,
+  guessColumnMap,
   importOrders,
   type ImportSummary,
+  type ColumnMap,
   type NormalizedOrderRow,
   type NormalizationIssue,
 } from "@/lib/orders/import";
@@ -39,6 +41,9 @@ export default function ImportPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [csvText, setCsvText] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [dataRows, setDataRows] = useState<string[][]>([]);
+  const [colMap, setColMap] = useState<ColumnMap>({});
   const [status, setStatus] = useState<Status>("idle");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<ImportSummary | null>(null);
@@ -50,10 +55,13 @@ export default function ImportPage() {
     reader.onload = () => {
       const text = String(reader.result ?? "")
       const { headers, rows } = parseCsv(text)
-      const normalized = normalizeOrderRows(headers, rows)
+      const initialMap = guessColumnMap(headers)
+      setHeaders(headers)
+      setDataRows(rows)
+      setColMap(initialMap)
       setFileName(file.name)
       setCsvText(text)
-      setPreview(normalized)
+      setPreview(normalizeOrderRows(headers, rows, initialMap))
       setStatus("ready")
       setResult(null)
       setErrorMessage("")
@@ -61,12 +69,26 @@ export default function ImportPage() {
     reader.readAsText(file)
   }
 
+  function handleColumnChange(key: keyof NormalizedOrderRow, value: string) {
+    const next = { ...colMap }
+    if (value === "") {
+      delete next[key]
+    } else {
+      next[key] = Number(value)
+    }
+    setColMap(next)
+    setPreview(normalizeOrderRows(headers, dataRows, next))
+    setStatus("ready")
+    setResult(null)
+    setErrorMessage("")
+  }
+
   async function handleImport() {
     if (!csvText) return
     setStatus("importing")
     setErrorMessage("")
     try {
-      const summary = await importOrders(csvText)
+      const summary = await importOrders(csvText, colMap)
       setResult(summary)
       setStatus("done")
     } catch (err) {
@@ -78,6 +100,9 @@ export default function ImportPage() {
   function reset() {
     setFileName(null)
     setCsvText("")
+    setHeaders([])
+    setDataRows([])
+    setColMap({})
     setPreview(null)
     setResult(null)
     setErrorMessage("")
@@ -95,6 +120,8 @@ export default function ImportPage() {
     { label: "Quantité", key: "quantity" },
     { label: "PU HT", key: "unit_price_ex_vat" },
   ]
+
+  const unmapped = previewColumns.filter((col) => colMap[col.key] === undefined)
 
   return (
     <div className="page-header" style={{ padding: "24px 28px", flexShrink: 0 }}>
@@ -140,7 +167,7 @@ export default function ImportPage() {
             Glissez votre fichier CSV ici
           </div>
           <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-            ou cliquez pour parcourir · colonnes attendues : N° commande, Date, Compte, SKU, Quantité, PU HT
+            ou cliquez pour parcourir · les colonnes sont reconnues automatiquement, ajustables après le chargement
           </div>
         </div>
       )}
@@ -180,6 +207,60 @@ export default function ImportPage() {
 
           {preview && (
             <>
+              <div
+                style={{
+                  marginTop: 16,
+                  border: "1px solid var(--border)",
+                  borderRadius: 12,
+                  background: "var(--bg)",
+                  padding: 14,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
+                  Correspondance des colonnes
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, marginBottom: 10 }}>
+                  Associez chaque champ requis à une colonne du fichier. Les colonnes sont reconnues automatiquement,
+                  vous pouvez les corriger ici.
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {previewColumns.map((field) => {
+                    const selected = colMap[field.key]
+                    return (
+                      <label key={field.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>{field.label}</span>
+                        <select
+                          value={selected === undefined ? "" : String(selected)}
+                          onChange={(e) => handleColumnChange(field.key, e.target.value)}
+                          style={{
+                            border: "1px solid var(--border)",
+                            borderRadius: 8,
+                            background: "var(--white)",
+                            padding: "7px 10px",
+                            fontSize: 12.5,
+                            color: "var(--text)",
+                            fontFamily: "Figtree, sans-serif",
+                          }}
+                        >
+                          <option value="">— non fourni —</option>
+                          {headers.map((h, i) => (
+                            <option key={i} value={String(i)}>
+                              {i} · {h.trim() || `(colonne ${i + 1})`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
               <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
                 <StatChip label="Lignes" value={preview.rows.length} color="var(--text)" />
                 <StatChip label="Valides" value={validCount} color="var(--green)" />
@@ -305,9 +386,10 @@ export default function ImportPage() {
           )}
 
           {status === "ready" && (
-            <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+            <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <button
                 onClick={handleImport}
+                disabled={unmapped.length > 0}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -318,9 +400,10 @@ export default function ImportPage() {
                   borderRadius: 8,
                   fontSize: 13,
                   color: "white",
-                  cursor: "pointer",
+                  cursor: unmapped.length > 0 ? "not-allowed" : "pointer",
                   fontFamily: "Figtree, sans-serif",
                   fontWeight: 600,
+                  opacity: unmapped.length > 0 ? 0.45 : 1,
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -329,6 +412,11 @@ export default function ImportPage() {
                 </svg>
                 Importer {validCount > 0 ? `${validCount} ligne(s)` : ""}
               </button>
+              {unmapped.length > 0 && (
+                <span style={{ fontSize: 12.5, color: "var(--orange)", fontWeight: 600 }}>
+                  Colonne non assignée : {unmapped.map((col) => col.label).join(", ")}
+                </span>
+              )}
             </div>
           )}
 

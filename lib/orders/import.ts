@@ -27,6 +27,8 @@ export type ImportSummary = {
   errors: { line: number; order_number?: string; reason: string }[];
 }
 
+export type ColumnMap = Partial<Record<keyof NormalizedOrderRow, number>>
+
 const HEADER_ALIASES: Record<keyof NormalizedOrderRow, string[]> = {
   order_number: [
     "ordernumber",
@@ -77,17 +79,45 @@ function normalizeHeader(header: string): string {
     .replace(/[^a-z0-9]/g, "")
 }
 
-function buildColumnMap(headers: string[]): Partial<Record<keyof NormalizedOrderRow, number>> {
-  const map: Partial<Record<keyof NormalizedOrderRow, number>> = {}
+function findSubstringMatch(normalized: string[], aliases: string[]): number {
+  let bestIndex = -1
+  let bestLength = 0
+  for (let i = 0; i < normalized.length; i++) {
+    const header = normalized[i]
+    if (header.length < 4) continue
+    for (const alias of aliases) {
+      if (alias.length < 4) continue
+      if (header.length > alias.length && (header.startsWith(alias) || header.endsWith(alias))) {
+        if (alias.length > bestLength) {
+          bestLength = alias.length
+          bestIndex = i
+        }
+      }
+    }
+  }
+  return bestIndex
+}
+
+export function guessColumnMap(headers: string[]): ColumnMap {
+  const map: ColumnMap = {}
   const normalized = headers.map(normalizeHeader)
 
   for (const key of Object.keys(HEADER_ALIASES) as (keyof NormalizedOrderRow)[]) {
+    let found = -1
+
     for (let i = 0; i < normalized.length; i++) {
       if (HEADER_ALIASES[key].includes(normalized[i])) {
-        map[key] = i
+        found = i
         break
       }
     }
+
+    if (found === -1) {
+      const best = findSubstringMatch(normalized, HEADER_ALIASES[key])
+      if (best !== -1) found = best
+    }
+
+    if (found !== -1) map[key] = found
   }
 
   return map
@@ -210,8 +240,8 @@ export type NormalizeResult = {
   duplicateLines: number[];
 }
 
-export function normalizeOrderRows(headers: string[], dataRows: string[][]): NormalizeResult {
-  const col = buildColumnMap(headers)
+export function normalizeOrderRows(headers: string[], dataRows: string[][], colMap?: ColumnMap): NormalizeResult {
+  const col = colMap ?? guessColumnMap(headers)
   const rows: NormalizedOrderRow[] = []
   const issues: NormalizationIssue[] = []
   const duplicateLines: number[] = []
@@ -273,11 +303,11 @@ export function normalizeOrderRows(headers: string[], dataRows: string[][]): Nor
   return { rows, issues, duplicateLines }
 }
 
-export async function importOrders(csvText: string): Promise<ImportSummary> {
+export async function importOrders(csvText: string, mapping?: ColumnMap): Promise<ImportSummary> {
   const response = await fetch("/api/orders/import", {
     method: "POST",
-    headers: { "Content-Type": "text/csv" },
-    body: csvText,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ csv: csvText, mapping: mapping ?? {} }),
   })
 
   const payload = (await response.json().catch(() => ({}))) as ImportSummary & { error?: string }
