@@ -29,16 +29,6 @@ const navItems = [
     ),
   },
   {
-    label: "Actions",
-    href: "/actions",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M5 8L7.5 10.5L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
     label: "Produits",
     href: "/produits",
     icon: (
@@ -58,16 +48,6 @@ const navItems = [
         <rect x="2" y="9" width="3" height="5" rx="0.75" fill="currentColor" />
         <rect x="6.5" y="5" width="3" height="9" rx="0.75" fill="currentColor" />
         <rect x="11" y="2" width="3" height="12" rx="0.75" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
-    label: "Marketing",
-    href: "/marketing",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M2 12L4 8L6 11L9 5L12 10L14 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="14" cy="4" r="1.5" fill="currentColor" />
       </svg>
     ),
   },
