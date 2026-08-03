@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 type AccountOverview = {
@@ -174,28 +175,54 @@ export default function ComptesPage() {
               Gérez vos comptes clients
             </p>
           </div>
-          <button
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 14px",
-              background: "var(--active)",
-              border: "1px solid var(--active)",
-              borderRadius: 8,
-              fontSize: 12.5,
-              color: "white",
-              cursor: "pointer",
-              fontFamily: "Figtree, sans-serif",
-              fontWeight: 600,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <path d="M2 8H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            Créer un compte
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Link
+              href="/import"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                background: "var(--white)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12.5,
+                color: "var(--text)",
+                cursor: "pointer",
+                fontFamily: "Figtree, sans-serif",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M2 8H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              Importer des commandes
+            </Link>
+            <button
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                background: "var(--active)",
+                border: "1px solid var(--active)",
+                borderRadius: 8,
+                fontSize: 12.5,
+                color: "white",
+                cursor: "pointer",
+                fontFamily: "Figtree, sans-serif",
+                fontWeight: 600,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M2 8H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Créer un compte
+            </button>
+          </div>
         </div>
       </div>
 
