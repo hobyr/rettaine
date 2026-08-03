@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   {
@@ -96,6 +97,13 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
 
   return (
     <aside
@@ -179,6 +187,7 @@ export default function Sidebar() {
       </nav>
 
       <div
+        onClick={handleSignOut}
         style={{
           display: "flex",
           alignItems: "center",
@@ -188,6 +197,11 @@ export default function Sidebar() {
           fontSize: 12,
           cursor: "pointer",
           marginTop: "auto",
+          border: "none",
+          background: "transparent",
+          fontFamily: "Figtree, sans-serif",
+          textAlign: "left",
+          width: "100%",
         }}
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">

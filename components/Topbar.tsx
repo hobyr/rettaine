@@ -1,6 +1,62 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type MemberInfo = {
+  name: string;
+  role: string;
+};
+
+const roleLabels: Record<string, string> = {
+  MANAGER: "Manager",
+  BUSINESS_DEVELOPER_REPRESENTATIVE: "Commercial",
+};
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
+
 export default function Topbar() {
+  const supabase = createClient();
+  const [member, setMember] = useState<MemberInfo | null>(null);
+  const [fallbackEmail, setFallbackEmail] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getUser().then(async ({ data }) => {
+      const user = data?.user;
+      if (!user) return;
+
+      if (mounted) setFallbackEmail(user.email ?? "");
+
+      const { data: memberRow } = await supabase
+        .from("company_members")
+        .select("name, role")
+        .eq("user_id", user.id)
+        .single();
+
+      if (mounted && memberRow) {
+        setMember({ name: memberRow.name ?? user.email ?? "", role: memberRow.role ?? "" });
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [supabase]);
+
+  const displayName = member?.name || fallbackEmail || "Utilisateur";
+  const roleLabel = (member && roleLabels[member.role]) || "Membre";
+  const avatarText = member?.name ? initials(member.name) : fallbackEmail.slice(0, 2).toUpperCase();
+
   return (
     <div
       style={{
@@ -22,7 +78,7 @@ export default function Topbar() {
             margin: 0,
           }}
         >
-          Bonjour Thomas 👋
+          Bonjour {displayName} 👋
         </h1>
         <p
           style={{
@@ -127,11 +183,11 @@ export default function Topbar() {
               flexShrink: 0,
             }}
           >
-            TM
+            {avatarText || "U"}
           </div>
           <div className="max-md:hidden">
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>Thomas Martin</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>Commercial</div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--text)" }}>{displayName}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>{roleLabel}</div>
           </div>
         </div>
       </div>
