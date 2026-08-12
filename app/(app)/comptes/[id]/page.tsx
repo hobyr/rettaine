@@ -66,6 +66,21 @@ type AccountProductPerformance = {
   quantity_evolution_percent: string | null;
 };
 
+type AccountInfo = {
+  type: string;
+  region: string;
+  company_status: string | null;
+  contact_firstname: string | null;
+  contact_lastname: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  siret: string | null;
+  adress: string | null;
+  adress_complementary: string | null;
+  city: string | null;
+  postcode: number | null;
+};
+
 type DonutSlice = {
   sku: string;
   name: string;
@@ -119,6 +134,14 @@ const accountTypeStyles: Record<string, { background: string; color: string; bor
   Revendeur: { background: "#f8fafc", color: "#64748b", borderColor: "#e2e8f0" },
 };
 
+const companyStatusStyles: Record<string, { background: string; color: string; borderColor: string }> = {
+  ACTIVE: { background: "#f0fdf4", color: "#15803d", borderColor: "#bbf7d0" },
+  INACTIVE: { background: "#f8fafc", color: "#64748b", borderColor: "#e2e8f0" },
+  DORMANT: { background: "#fff7ed", color: "#ea580c", borderColor: "#fed7aa" },
+  CLOSED: { background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" },
+  BLACKLISTED: { background: "#fef2f2", color: "#dc2626", borderColor: "#fecaca" },
+};
+
 const rfmStatusStyles: Record<string, { background: string; color: string }> = {
   Excellent: { background: "#eff6ff", color: "#1d4ed8" },
   Bon: { background: "#f0fdf4", color: "#15803d" },
@@ -157,12 +180,39 @@ function DonutTooltip({
   );
 }
 
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "9px 0",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <span style={{ fontSize: 12, color: "var(--muted)", flexShrink: 0 }}>{label}</span>
+      <span
+        style={{
+          fontSize: 12.5,
+          color: "var(--text)",
+          textAlign: "right",
+          wordBreak: "break-word",
+        }}
+      >
+        {children}
+      </span>
+    </div>
+  );
+}
+
 export default function CompteDetailPage() {
   const params = useParams<{ id: string }>();
   const accountNumber = params.id;
 
   const [kpi, setKpi] = useState<AccountDetailKpi | null>(null);
-  const [accountInfo, setAccountInfo] = useState<{ type: string; region: string } | null>(null);
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [rfm, setRfm] = useState<AccountRfmPeriod | null>(null);
   const [rfmPos, setRfmPos] = useState<AccountRfmPosition | null>(null);
   const [products, setProducts] = useState<AccountProductPerformance[] | null>(null);
@@ -202,7 +252,9 @@ export default function CompteDetailPage() {
         p_start_date: startDate,
         p_end_date: endDate,
       }),
-      supabase.from("accounts").select("type, region").eq("account_number", accountNumber).single(),
+      supabase.from("accounts").select(
+        "type, region, company_status, contact_firstname, contact_lastname, contact_phone, contact_email, siret, adress, adress_complementary, city, postcode"
+      ).eq("account_number", accountNumber).single(),
       supabase.rpc("get_account_rfm_by_period", { start_date: startDate, end_date: endDate }),
       supabase.rpc("get_account_rfm_position_vs_global_portfolio", { p_account_number: accountNumber }),
       supabase.rpc("get_account_product_performance_by_account", {
@@ -239,6 +291,15 @@ export default function CompteDetailPage() {
   }, [accountNumber, startDate, endDate]);
 
   const refreshing = appliedStartDate !== startDate || appliedEndDate !== endDate;
+
+  useEffect(() => {
+    if (!showInfoModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowInfoModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showInfoModal]);
 
   const { slices: donutSlices, total: donutTotal } = useMemo<
     { slices: DonutSlice[]; total: number }
@@ -492,6 +553,31 @@ export default function CompteDetailPage() {
               alignItems: "center",
             }}
           >
+            <button
+              className="btn-outline"
+              onClick={() => setShowInfoModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "7px 13px",
+                background: "white",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12.5,
+                color: "#374151",
+                cursor: "pointer",
+                fontFamily: "Figtree, sans-serif",
+                fontWeight: 500,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M8 7.5V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="8" cy="5" r="0.75" fill="currentColor" />
+              </svg>
+              Informations du compte
+            </button>
             <button
               className="btn-outline"
             style={{
@@ -1158,6 +1244,168 @@ export default function CompteDetailPage() {
         startDate={startDate}
         endDate={endDate}
       />
+
+      {showInfoModal && accountInfo && (
+        <div
+          onClick={() => setShowInfoModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15,23,42,0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 20,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Informations du compte"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--white)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              maxWidth: 440,
+              width: "100%",
+              padding: 20,
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+              maxHeight: "85vh",
+              overflowY: "auto",
+              animation: "fadeIn 0.25s ease",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 6,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: "var(--text)",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  Informations du compte
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                  {kpi.account_name} · {accountNumber}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInfoModal(false)}
+                aria-label="Fermer"
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: "var(--muted)",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  padding: 4,
+                  fontFamily: "Figtree, sans-serif",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {(() => {
+              const info = accountInfo;
+              const hasAnyInfo =
+                info.contact_firstname ||
+                info.contact_lastname ||
+                info.contact_phone ||
+                info.contact_email ||
+                info.siret ||
+                info.adress ||
+                info.adress_complementary ||
+                info.city;
+
+              if (!hasAnyInfo) {
+                return (
+                  <div
+                    style={{
+                      padding: "40px 20px",
+                      textAlign: "center",
+                      color: "var(--muted)",
+                      fontSize: 13,
+                    }}
+                  >
+                    Informations non disponibles
+                  </div>
+                );
+              }
+
+              const statusStyle = companyStatusStyles[info.company_status ?? ""];
+              const address = [info.adress, info.adress_complementary].filter(Boolean).join(", ") || null;
+              const ville = [info.postcode, info.city].filter(Boolean).join(" ") || null;
+
+              return (
+                <div style={{ marginTop: 10 }}>
+                  <InfoRow label="Statut">
+                    {info.company_status ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          padding: "2px 8px",
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          border: "1px solid",
+                          ...(statusStyle ?? companyStatusStyles.INACTIVE),
+                        }}
+                      >
+                        {info.company_status}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </InfoRow>
+                  <InfoRow label="Prénom">{info.contact_firstname ?? "—"}</InfoRow>
+                  <InfoRow label="Nom">{info.contact_lastname ?? "—"}</InfoRow>
+                  <InfoRow label="Téléphone">
+                    {info.contact_phone ? (
+                      <a
+                        href={`tel:${info.contact_phone}`}
+                        style={{ color: "var(--active)", textDecoration: "none", fontWeight: 600 }}
+                      >
+                        {info.contact_phone}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </InfoRow>
+                  <InfoRow label="Email">
+                    {info.contact_email ? (
+                      <a
+                        href={`mailto:${info.contact_email}`}
+                        style={{ color: "var(--active)", textDecoration: "none", fontWeight: 600 }}
+                      >
+                        {info.contact_email}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </InfoRow>
+                  <InfoRow label="SIRET">{info.siret ?? "—"}</InfoRow>
+                  <InfoRow label="Adresse">{address ?? "—"}</InfoRow>
+                  <InfoRow label="Ville">{ville ?? "—"}</InfoRow>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
