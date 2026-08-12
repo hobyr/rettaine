@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import EmailModal from "@/components/EmailModal";
 
 type HomeFlashcard = {
   account_number: string;
@@ -107,6 +108,9 @@ export default function FlashCardSection() {
   const [activeTab, setActiveTab] = useState("all");
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<"carousel" | "grid">("carousel");
+  const [emailModalCard, setEmailModalCard] = useState<HomeFlashcard | null>(null);
+
+  const closeEmailModal = useCallback(() => setEmailModalCard(null), []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -333,6 +337,26 @@ export default function FlashCardSection() {
             }}
           >
             Contacter
+          </div>
+          <div
+            style={{
+              flex: 1,
+              padding: detailed ? "8px 0" : "6px 0",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "white",
+              fontSize: detailed ? 12 : 10.5,
+              cursor: "pointer",
+              textAlign: "center",
+              color: "var(--text)",
+              fontWeight: 500,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setEmailModalCard(card);
+            }}
+          >
+            Preparer l&apos;email
           </div>
           <div
             style={{
@@ -616,6 +640,12 @@ export default function FlashCardSection() {
           ))}
         </div>
       )}
+
+      <EmailModal
+        open={!!emailModalCard}
+        flashcard={emailModalCard}
+        onClose={closeEmailModal}
+      />
     </div>
   );
 }
